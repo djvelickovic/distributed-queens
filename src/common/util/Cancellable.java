@@ -1,4 +1,4 @@
-package common;
+package common.util;
 
 /**
  * Describes a cancellable job. Our workers will normally implement

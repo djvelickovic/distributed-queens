@@ -1,7 +1,7 @@
 package test;
 
-import common.ConfigUtil;
-import common.Log;
+import common.util.ConfigUtil;
+import common.util.Log;
 
 import java.io.File;
 import java.io.IOException;

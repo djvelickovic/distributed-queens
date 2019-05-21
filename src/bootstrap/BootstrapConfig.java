@@ -1,7 +1,7 @@
 package bootstrap;
 
-import common.ConfigUtil;
 import common.NodeInfo;
+import common.util.ConfigUtil;
 
 import java.util.Properties;
 
@@ -14,6 +14,14 @@ public class BootstrapConfig {
         return Integer.parseInt(properties.getProperty("bootstrap.port"));
     }
 
+    public static String bootstrapIp() {
+        return properties.getProperty("bootstrap.ip");
+    }
+
+    public static NodeInfo bootstrap() {
+        return new NodeInfo(bootstrapIp(), bootstrapPort());
+    }
+
     public static Boolean testDelay() {
         return Boolean.parseBoolean(properties.getProperty("test.delay"));
     }
@@ -24,5 +32,9 @@ public class BootstrapConfig {
 
     public static void setBootstrapPort(String nodePort) {
         properties.setProperty("bootstrap.port", nodePort);
+    }
+
+    public static void setBootstrapIp(String bootstrapIp) {
+        properties.setProperty("bootstrap.ip", bootstrapIp);
     }
 }

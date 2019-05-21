@@ -1,6 +1,6 @@
 package node;
 
-import common.ConfigUtil;
+import common.util.ConfigUtil;
 import common.NodeInfo;
 
 import java.util.Properties;

@@ -1,7 +1,6 @@
 package node;
 
-import common.ConfigUtil;
-import common.Log;
+import common.util.Log;
 
 import java.util.stream.Stream;
 

@@ -1,7 +1,7 @@
 package node.cli;
 
-import common.Cancellable;
-import common.Log;
+import common.util.Cancellable;
+import common.util.Log;
 import node.cli.command.*;
 
 import java.util.ArrayList;

@@ -1,10 +1,12 @@
 package common;
 
-import node.boundary.message.Message;
+import common.util.Log;
+import common.messages.Message;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.net.Socket;
+import java.util.function.Consumer;
 
 public class MessageUtil {
 
@@ -36,8 +38,13 @@ public class MessageUtil {
 		return clientMessage;
 	}
 	
+	public static void sendMessage(Message message, Consumer<Exception> exceptionHandler) {
+		Thread delayedSender = new Thread(new MessageSender(message, exceptionHandler));
+		delayedSender.start();
+	}
+
 	public static void sendMessage(Message message) {
-		Thread delayedSender = new Thread(new DelayedMessageSender(message));
+		Thread delayedSender = new Thread(new MessageSender(message));
 		delayedSender.start();
 	}
 }

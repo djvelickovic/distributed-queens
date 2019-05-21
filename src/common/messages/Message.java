@@ -1,4 +1,4 @@
-package node.boundary.message;
+package common.messages;
 
 import common.NodeInfo;
 
