@@ -1,27 +1,27 @@
-package node;
+package bootstrap;
 
-import common.ConfigUtil;
 import common.Log;
+import node.NodeConfig;
 
 import java.util.stream.Stream;
 
 
-public class NodeMain {
+public class BootstrapMain {
 
 
-    // arg 0 - listening port
-    // arg 1 - properties path
+    // arg 0 - properties path
+    // arg 1 - listening port
 	public static void main(String[] args) {
 		// INIT LISTENERS
 		// START CLI
 
 		Stream.of(args).forEach(System.out::println);
 
-        NodeConfig.readConfig(args[1]);
-        NodeConfig.setNodePort(args[0]);
+		BootstrapConfig.readConfig(args[0]);
+		BootstrapConfig.setBootstrapPort(args[1]);
 
-		Log.info(NodeConfig.bootstrap()+"");
-		Log.info(NodeConfig.nodePort()+"");
+		Log.info(BootstrapConfig.bootstrapPort()+"");
+		Log.info(BootstrapConfig.testDelay()+"");
 
 //		NodeListener simpleListener = new NodeListener();
 //		Thread listenerThread = new Thread(simpleListener);

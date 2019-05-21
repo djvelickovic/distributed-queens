@@ -1,15 +1,21 @@
 package node;
 
+import common.ConfigUtil;
 import common.NodeInfo;
+
+import java.util.Properties;
 
 public class NodeConfig {
 
+    private static Properties properties;
+
+
     public static Integer bootstrapPort() {
-        return Integer.parseInt(System.getProperty("bootstrap.port"));
+        return Integer.parseInt(properties.getProperty("bootstrap.port"));
     }
 
     public static String bootstrapIp() {
-        return System.getProperty("bootstrap.ip");
+        return properties.getProperty("bootstrap.ip");
     }
 
     public static NodeInfo bootstrap() {
@@ -17,7 +23,22 @@ public class NodeConfig {
     }
 
     public static Integer nodePort() {
-        return Integer.parseInt(System.getProperty("node.port"));
+        return Integer.parseInt(properties.getProperty("node.port"));
     }
 
+    public static Integer limit() {
+        return Integer.parseInt(properties.getProperty("node.limit"));
+    }
+
+    public static Boolean testDelay() {
+        return Boolean.parseBoolean(properties.getProperty("test.delay"));
+    }
+
+    public static void readConfig(String fileName) {
+        properties = ConfigUtil.readConfig(fileName);
+    }
+
+    public static void setNodePort(String nodePort) {
+        properties.setProperty("node.port", nodePort);
+    }
 }

@@ -20,4 +20,12 @@ public class NodeInfo implements Serializable {
 	public int getPort() {
 		return port;
 	}
+
+	@Override
+	public String toString() {
+		return "NodeInfo{" +
+				"ip='" + ip + '\'' +
+				", port=" + port +
+				'}';
+	}
 }

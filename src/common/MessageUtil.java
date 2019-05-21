@@ -1,7 +1,5 @@
 package common;
 
-import common.ConfigUtil;
-import common.DelayedMessageSender;
 import node.boundary.message.Message;
 
 import java.io.IOException;

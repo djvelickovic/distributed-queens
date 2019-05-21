@@ -1,7 +1,6 @@
 package node.boundary;
 
 import common.Cancellable;
-import common.ConfigUtil;
 import common.Log;
 import common.MessageUtil;
 import node.NodeConfig;
@@ -9,7 +8,6 @@ import node.boundary.handler.MessageHandler;
 import node.boundary.message.Message;
 
 import java.io.IOException;
-import java.io.ObjectInputFilter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
