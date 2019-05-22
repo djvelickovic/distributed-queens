@@ -1,26 +1,29 @@
 package node;
 
+import common.Config;
+import common.NodeInfo;
 import common.util.Log;
 
+import java.util.Arrays;
 import java.util.stream.Stream;
 
 
 public class NodeMain {
 
-
-    // arg 0 - listening port
-    // arg 1 - properties path
+	// arg 0 - listening address
+    // arg 1 - listening port
+    // arg 2 - bootstrap address
+	// arg 3 - bootstrap port
 	public static void main(String[] args) {
 		// INIT LISTENERS
 		// START CLI
 
-		Stream.of(args).forEach(System.out::println);
+		Log.debug("Arguments: " + Arrays.toString(args));
 
-        NodeConfig.readConfig(args[1]);
-        NodeConfig.setNodePort(args[0]);
+		Config.bootstrap = new NodeInfo(args[0], Integer.parseInt(args[1]));
+		Config.bootstrap = new NodeInfo(args[0], Integer.parseInt(args[1]));
 
-		Log.info(NodeConfig.bootstrap()+"");
-		Log.info(NodeConfig.nodePort()+"");
+		Log.info("Node started...");
 
 //		NodeListener simpleListener = new NodeListener();
 //		Thread listenerThread = new Thread(simpleListener);

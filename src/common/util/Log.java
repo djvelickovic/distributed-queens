@@ -23,7 +23,7 @@ public class Log {
 		}
 	}
 
-	private static Level level = Level.INFO;
+	private static Level level = Level.DEBUG;
 
 	public static void debug(String message) {
 		if (level.priority() > Level.DEBUG.priority()){

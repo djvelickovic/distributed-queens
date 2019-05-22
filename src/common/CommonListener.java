@@ -3,19 +3,12 @@ package common;
 import common.messages.Message;
 import common.util.Cancellable;
 import common.util.Log;
-import node.NodeConfig;
-import node.boundary.handler.MessageHandler;
 
 import java.io.IOException;
 import java.net.*;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 public class CommonListener implements Runnable, Cancellable {
 
@@ -48,7 +41,7 @@ public class CommonListener implements Runnable, Cancellable {
 			 */
 			listenerSocket.setSoTimeout(5000);
 		} catch (IOException e) {
-			Log.error("Couldn't open listener socket on: " + NodeConfig.nodePort());
+			Log.error("Couldn't open listener socket on: " + address+":"+port);
 			System.exit(0);
 		}
 

@@ -2,39 +2,34 @@ package bootstrap;
 
 import bootstrap.handlers.BootstrapMessageHandler;
 import common.CommonListener;
+import common.Config;
+import common.NodeInfo;
 import common.messages.bootstrap.BootstrapMessage;
 import common.util.Log;
 
+import java.util.Arrays;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 
 public class BootstrapMain {
 
 
-    // arg 0 - properties path
+    // arg 0 - address
     // arg 1 - listening port
 	public static void main(String[] args) {
 		// INIT LISTENERS
 		// START CLI
 
-		Stream.of(args).forEach(System.out::println);
+		Log.debug("Arguments: " + Arrays.toString(args));
 
-		BootstrapConfig.readConfig(args[0]);
-		BootstrapConfig.setBootstrapIp(args[1]);
-		BootstrapConfig.setBootstrapPort(args[2]);
-
-		Log.debug(BootstrapConfig.bootstrapPort()+"");
-		Log.debug(BootstrapConfig.testDelay()+"");
+		Config.bootstrap = new NodeInfo(args[0], Integer.parseInt(args[1]));
 
 		Log.info("Bootstrap service started...");
 
 		BootstrapNodeService bootstrapNodeService = new BootstrapNodeService();
-
 		BootstrapMessageHandler bootstrapMessageHandler = new BootstrapMessageHandler(bootstrapNodeService);
-
-		new Thread(new NodeCleanerWorker(bootstrapNodeService)).start();
-
-		CommonListener commonListener = new CommonListener(BootstrapConfig.bootstrapIp(), BootstrapConfig.bootstrapPort());
+		CommonListener commonListener = new CommonListener(Config.bootstrap.getIp(), Config.bootstrap.getPort());
 
 		commonListener.setMessageHandler((m, e) -> {
 			if (m instanceof BootstrapMessage) {

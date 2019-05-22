@@ -1,8 +1,7 @@
 package bootstrap.handlers;
 
-import bootstrap.BootstrapConfig;
 import bootstrap.BootstrapNodeService;
-import bootstrap.NodeState;
+import common.Config;
 import common.MessageUtil;
 import common.NodeInfo;
 import common.messages.bootstrap.BootstrapFlag;
@@ -25,20 +24,18 @@ public class BootstrapMessageHandler implements MessageHandler<BootstrapMessage>
     public void handle(BootstrapMessage message, ExecutorService executor) {
         executor.submit(() -> {
             if (message.getFlag() == BootstrapFlag.ACK) {
-                bootstrapNodeService.changeNodeState(message.sender(), NodeState.ACTIVE);
+                Log.info("Node joined system "+message.sender());
+
+                bootstrapNodeService.addNode(message.sender());
             }
             else if (message.getFlag() == BootstrapFlag.REGISTER) {
-                bootstrapNodeService.changeNodeState(message.sender(), NodeState.PENDING);
                 NodeInfo activeNode = bootstrapNodeService.getRandomActiveNode();
-                BootstrapResponseMessage bootstrapResponseMessage = new BootstrapResponseMessage(BootstrapConfig.bootstrap(), message.sender(), activeNode);
-                MessageUtil.sendMessage(bootstrapResponseMessage, e -> {
-                    bootstrapNodeService.changeNodeState(message.sender(), NodeState.INACTIVE);
-                    Log.warn("Unable to reach node "+message.sender());
-                });
+                BootstrapResponseMessage bootstrapResponseMessage = new BootstrapResponseMessage(Config.bootstrap, message.sender(), activeNode);
+                MessageUtil.sendMessage(bootstrapResponseMessage);
             }
-            else if (message.getFlag() == BootstrapFlag.HEARTBEAT) {
-                Log.info("Node repond on heartbeat "+message.sender());
-                bootstrapNodeService.changeNodeState(message.sender(), NodeState.ACTIVE);
+            else if (message.getFlag() == BootstrapFlag.LEAVE) {
+                Log.info("Node left system "+message.sender());
+                bootstrapNodeService.addNode(message.sender());
             }
         });
     }

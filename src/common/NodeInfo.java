@@ -1,10 +1,12 @@
 package common;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 public class NodeInfo implements Serializable {
 
 	private static final long serialVersionUID = 5304170042791281555L;
+
 	private final String ip;
 	private final int port;
 
@@ -19,6 +21,20 @@ public class NodeInfo implements Serializable {
 
 	public int getPort() {
 		return port;
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		NodeInfo nodeInfo = (NodeInfo) o;
+		return port == nodeInfo.port &&
+				ip.equals(nodeInfo.ip);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(ip, port);
 	}
 
 	@Override
