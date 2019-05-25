@@ -20,6 +20,11 @@ public class NodeService {
     private static final Set<NodeInfo> nodes = ConcurrentHashMap.newKeySet();
 
     public CheckInResponse checkIn(NodeInfo nodeInfo) {
+
+        if (nodes.contains(nodeInfo)) {
+            throw new RuntimeException("Node has already subscribed to system: "+ nodeInfo);
+        }
+
         Integer id = queue.poll();
 
         if (id == null) {

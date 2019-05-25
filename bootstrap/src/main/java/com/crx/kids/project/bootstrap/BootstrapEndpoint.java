@@ -1,5 +1,6 @@
 package com.crx.kids.project.bootstrap;
 
+import com.crx.kids.project.common.CheckInResponse;
 import com.crx.kids.project.common.CheckOutRequest;
 import com.crx.kids.project.common.NodeInfo;
 import org.slf4j.Logger;
@@ -21,8 +22,9 @@ public class BootstrapEndpoint {
 
     @PostMapping(path = "check-in", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity checkIn(@RequestBody NodeInfo checkIn) {
-        logger.info("New node is subscribing to system {}", checkIn.toString());
-        return ResponseEntity.ok(nodeService.checkIn(checkIn));
+        CheckInResponse checkInResponse = nodeService.checkIn(checkIn);
+        logger.info("New node is subscribed to system {}", checkInResponse);
+        return ResponseEntity.ok(checkInResponse);
     }
 
     @PostMapping(path = "check-out", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
