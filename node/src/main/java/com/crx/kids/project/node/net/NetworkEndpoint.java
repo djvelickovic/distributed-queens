@@ -25,10 +25,13 @@ public class NetworkEndpoint {
     @Autowired
     private NetworkService networkService;
 
-    @GetMapping(path = "neighbours", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    @GetMapping(path = "stats", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity getAllNeighbours() {
-        Map<Integer, NodeInfo> neighbours = new HashMap<>(Network.neighbours);
-        return ResponseEntity.ok().body(neighbours);
+        StatusResponse statusResponse = new StatusResponse();
+        statusResponse.setNodes(Network.neighbours);
+        statusResponse.setFirstSmallest(Network.firstSmallestNeighbour);
+        statusResponse.setSecondSmallest(Network.secondSmallestNeighbour);
+        return ResponseEntity.ok().body(statusResponse);
     }
 
     @PostMapping(path = "neighbours", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)

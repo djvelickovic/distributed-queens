@@ -93,12 +93,15 @@ public class RoutingService {
             int n2 = list2.get(list2.size() - 1 - i);
 
             if (n1 == n2) {
-                maxCommonIndex = 0;
+                maxCommonIndex = minSize - 1 - i;
             }
             if (n1 != n2) {
                 break;
             }
         }
+
+        logger.info("Max common index {}", maxCommonIndex);
+
 
         return maxCommonIndex;
     }
@@ -118,7 +121,7 @@ public class RoutingService {
             chain.add(nodeId);
             nodeId = RoutingUtils.darah(nodeId);
         }
-
+        chain.add(1);
         return chain;
     }
 
