@@ -1,4 +1,4 @@
-package com.crx.kids.project.node.logic;
+package com.crx.kids.project.node.bootstrap;
 
 import com.crx.kids.project.common.CheckInResponse;
 import com.crx.kids.project.common.NodeInfo;
@@ -14,19 +14,9 @@ public class BootstrapService {
     private static final Logger logger = LoggerFactory.getLogger(BootstrapService.class);
 
 
-    public Optional<CheckInResponse> checkIn() {
-        String bootstrapAddress = System.getProperty("bootstrap.addr");
-        String bootstrapPort = System.getProperty("bootstrap.port");
+    public Optional<CheckInResponse> checkIn(NodeInfo bootstrap, NodeInfo myself) {
 
-        NodeInfo bootstrap = new NodeInfo(bootstrapAddress, Integer.parseInt(bootstrapPort));
-        Configuration.bootstrap = bootstrap;
-
-        String url = "http://"+bootstrapAddress+":"+bootstrapPort+"/bootstrap/check-in";
-        NodeInfo myself = new NodeInfo(System.getProperty("server.address"), Integer.parseInt(System.getProperty("server.port")));
-
-        Configuration.myself = myself;
-
-        logger.info("I m node {}. first of my name..", myself);
+        String url = "http://"+bootstrap.getIp()+":"+bootstrap.getPort()+"/bootstrap/check-in";
 
         try {
             RestTemplate restTemplate = new RestTemplate();
