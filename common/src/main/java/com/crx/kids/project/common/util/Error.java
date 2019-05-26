@@ -1,0 +1,38 @@
+package com.crx.kids.project.common.util;
+
+
+public class Error {
+
+    public static Error of(ErrorCode code, String message){
+        return new Error(code,message);
+    }
+
+    public static Error of(ErrorCode code) {
+        return new Error(code, "");
+    }
+
+
+    private ErrorCode errorCode;
+    private String message;
+
+    public ErrorCode getErrorCode() {
+        return errorCode;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public Error(ErrorCode errorCode, String message) {
+        this.errorCode = errorCode;
+        this.message = message;
+    }
+
+    @Override
+    public String toString() {
+        return "Error{" +
+                "errorCode=" + errorCode +
+                ", message='" + message + '\'' +
+                '}';
+    }
+}

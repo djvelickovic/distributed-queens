@@ -5,44 +5,44 @@ import java.util.List;
 
 public abstract class Message {
 
-    private Integer sender;
-    private Integer receiver;
-    private List<Integer> path = new ArrayList<>();
+    private int sender;
+    private int receiver;
+    private List<Trace> trace = new ArrayList<>();
 
     public Message() {
     }
 
-    public Message(Integer sender, Integer receiver) {
+    public Message(int sender, int receiver) {
         this.sender = sender;
         this.receiver = receiver;
     }
 
-    public Integer getSender() {
+    public int getSender() {
         return sender;
     }
 
-    public void setSender(Integer sender) {
+    public void setSender(int sender) {
         this.sender = sender;
     }
 
-    public Integer getReceiver() {
+    public int getReceiver() {
         return receiver;
     }
 
-    public void setReceiver(Integer receiver) {
+    public void setReceiver(int receiver) {
         this.receiver = receiver;
     }
 
-    public List<Integer> getPath() {
-        return path;
+    public List<Trace> getTrace() {
+        return trace;
     }
 
-    public void addNodeToPath(Integer id) {
-        path.add(id);
+    public void addTrace(Trace t) {
+        trace.add(t);
     }
 
-    public void setPath(List<Integer> path) {
-        this.path = path;
+    public void setTrace(List<Trace> trace) {
+        this.trace = trace;
     }
 
     @Override
@@ -50,7 +50,7 @@ public abstract class Message {
         return "Message{" +
                 "sender=" + sender +
                 ", receiver=" + receiver +
-                ", path=" + path +
+                ", trace=" + trace +
                 '}';
     }
 }
