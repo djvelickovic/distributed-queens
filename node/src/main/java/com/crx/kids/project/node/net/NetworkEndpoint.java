@@ -1,10 +1,11 @@
 package com.crx.kids.project.node.net;
 
-import com.crx.kids.project.common.NodeInfo;
+import com.crx.kids.project.node.Configuration;
 import com.crx.kids.project.node.messages.AlterRoutingTableMessage;
-import com.crx.kids.project.node.messages.response.CommonResponse;
 import com.crx.kids.project.node.messages.newbie.NewbieAcceptedMessage;
 import com.crx.kids.project.node.messages.newbie.NewbieJoinMessage;
+import com.crx.kids.project.node.messages.newbie.PingMessage;
+import com.crx.kids.project.node.messages.response.CommonResponse;
 import com.crx.kids.project.node.messages.response.CommonType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,9 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.HashMap;
-import java.util.Map;
 
 @RestController
 @RequestMapping(path = "net")
@@ -24,6 +22,9 @@ public class NetworkEndpoint {
 
     @Autowired
     private NetworkService networkService;
+
+    @Autowired
+    private RoutingService routingService;
 
     @GetMapping(path = "stats", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity getAllNeighbours() {
@@ -36,15 +37,22 @@ public class NetworkEndpoint {
 
     @PostMapping(path = "neighbours", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResponse> alterNeighbours(@RequestBody AlterRoutingTableMessage alterRoutingTableMessage) {
-        networkService.alterRoutingTable(alterRoutingTableMessage);
+        if (alterRoutingTableMessage.getReceiver() != Configuration.id) {
+            routingService.dispatchMessage(alterRoutingTableMessage, "node/net/neighbours");
+            return ResponseEntity.ok(new CommonResponse(CommonType.OK));
+        }
 
-        CommonResponse commonResponse = new CommonResponse();
-        commonResponse.setType(CommonType.OK);
-        return ResponseEntity.ok().body(commonResponse);
+        networkService.alterRoutingTable(alterRoutingTableMessage);
+        return ResponseEntity.ok(new CommonResponse(CommonType.OK));
     }
 
     @PostMapping(path = "newbie-join", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResponse> newbieConnect(@RequestBody NewbieJoinMessage newbieJoinMessage) {
+        if (newbieJoinMessage.getReceiver() != Configuration.id) {
+            routingService.dispatchMessage(newbieJoinMessage, "node/net/newbie-join");
+            return ResponseEntity.ok(new CommonResponse(CommonType.OK));
+        }
+
         // async message!
         networkService.newbieJoinAsync(newbieJoinMessage);
         CommonResponse commonResponse = new CommonResponse();
@@ -54,11 +62,33 @@ public class NetworkEndpoint {
 
     @PostMapping(path = "newbie-accepted", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResponse> newbieAccepted(@RequestBody NewbieAcceptedMessage newbieAcceptedMessage) {
+        // NOTE: This should be direct message, so no routing will occur.
+        if (newbieAcceptedMessage.getReceiver() != Configuration.id) {
+            routingService.dispatchMessage(newbieAcceptedMessage, "node/net/newbie-accept");
+            return ResponseEntity.ok(new CommonResponse(CommonType.OK));
+        }
+
         networkService.newbieAccepted(newbieAcceptedMessage);
         CommonResponse commonResponse = new CommonResponse();
         commonResponse.setType(CommonType.OK);
-        return ResponseEntity.ok().body(commonResponse);    }
+        return ResponseEntity.ok().body(commonResponse);
+    }
 
+
+    @PostMapping(path = "ping", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    public ResponseEntity<CommonResponse> ping(@RequestBody PingMessage pingMessage) {
+
+        logger.info("III "+pingMessage.toString());
+        // NOTE: This should be direct message, so no routing will occur.
+        if (pingMessage.getReceiver() != Configuration.id) {
+            routingService.dispatchMessage(pingMessage, "node/net/ping");
+            return ResponseEntity.ok(new CommonResponse(CommonType.OK));
+        }
+
+        logger.info(pingMessage.toString());
+
+        return ResponseEntity.ok().body(new CommonResponse(CommonType.OK));
+    }
 
 
 

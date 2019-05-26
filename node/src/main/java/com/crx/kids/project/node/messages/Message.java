@@ -7,7 +7,7 @@ public abstract class Message {
 
     private int sender;
     private int receiver;
-    private List<Trace> trace = new ArrayList<>();
+    private List<Trace> trace;
 
     public Message() {
     }
@@ -38,6 +38,9 @@ public abstract class Message {
     }
 
     public void addTrace(Trace t) {
+        if (trace == null) {
+            trace = new ArrayList<>();
+        }
         trace.add(t);
     }
 

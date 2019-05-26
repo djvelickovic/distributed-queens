@@ -2,11 +2,18 @@ package com.crx.kids.project.node.net;
 
 import com.crx.kids.project.common.NodeInfo;
 import com.crx.kids.project.node.Configuration;
+import com.crx.kids.project.node.ThreadUtil;
 import com.crx.kids.project.node.messages.FullNodeInfo;
+import com.crx.kids.project.node.messages.Message;
+import com.crx.kids.project.node.messages.Trace;
+import com.crx.kids.project.node.messages.response.CommonResponse;
 import com.crx.kids.project.node.routing.RoutingUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,13 +27,13 @@ public class RoutingService {
     private static final Logger logger = LoggerFactory.getLogger(RoutingService.class);
 
     /**
-     * c1 | c2
-     * -------
-     * 14   12
-     *  7    6
-     *  4    3
-     *  2 -  2
-     *  1    1
+     *   c1 | c2
+     *   -------
+     *0. 14   12
+     *1.  7    6
+     *2.  4    3
+     *3.  2 -  2
+     *4.  1    1
      *
      * @param receiver
      * @return
@@ -54,16 +61,16 @@ public class RoutingService {
 
         // switch to receiver chain, find best max
         if (maxCommonNumberPosition + 1 == senderChain.size()) {
-            for (int i = receiverChain.size() - 1; i >= maxCommonNumber; i--) {
-                nextHop = neighbours.get().getOrDefault(i, null);
+            for (int i = 0; i <= maxCommonNumber; i++) {
+                nextHop = neighbours.get().getOrDefault(receiverChain.get(i), null);
                 if (nextHop != null) {
                     return Optional.of(new FullNodeInfo(i, nextHop));
                 }
             }
         }
         else { // switch on sender chain find best min
-            for (int i = maxCommonNumberPosition; i < senderChain.size(); i++) {
-                nextHop = neighbours.get().getOrDefault(i, null);
+            for (int i = maxCommonNumberPosition; i >= 0; i--) {
+                nextHop = neighbours.get().getOrDefault(senderChain.get(i), null);
                 if (nextHop != null) {
                     return Optional.of(new FullNodeInfo(i, nextHop));
                 }
@@ -80,8 +87,41 @@ public class RoutingService {
                 .findAny();
     }
 
+    @Async
+    public void dispatchMessage(Message message, String path) {
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            message.addTrace(new Trace(Configuration.id, "Rerouted."));
 
-    public int maxCommonNumber(List<Integer> list1, List<Integer> list2) {
+            // loop until next hop is determined
+            FullNodeInfo nextHop = ThreadUtil.loopWithResult(300, (l) -> {
+                Optional<FullNodeInfo> optionalNextHop = nextHop(Configuration.id, message.getReceiver(), () -> Network.neighbours);
+                if (optionalNextHop.isPresent()) {
+                    l.stop();
+                    return optionalNextHop.get();
+                }
+                logger.warn("Unable to find next hope. Retry!");
+                return null;
+            });
+
+            String url = NetUtil.url(nextHop, path);
+            logger.info("Rerouting message {} to {}", message, nextHop);
+
+            ResponseEntity<CommonResponse> response = restTemplate.postForEntity(url, message, CommonResponse.class);
+            CommonResponse commonResponse = response.getBody();
+
+            // TODO: handle various of responses, but assume for now, that all responses will be OK
+
+            logger.info("Dispatch response {}", response);
+
+        }
+        catch (Exception e) {
+            logger.error("Error while dispatching message", e);
+        }
+    }
+
+
+    private int maxCommonNumber(List<Integer> list1, List<Integer> list2) {
         int minSize = min(list1.size(), list2.size());
 
         int maxCommonIndex = -1;
