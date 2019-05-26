@@ -4,6 +4,10 @@ public class CheckInResponse {
     private int id;
     private NodeInfo nodeInfo;
 
+
+    public CheckInResponse() {
+    }
+
     public CheckInResponse(int id, NodeInfo nodeInfo) {
         this.id = id;
         this.nodeInfo = nodeInfo;

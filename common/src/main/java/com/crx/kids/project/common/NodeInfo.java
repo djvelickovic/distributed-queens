@@ -6,6 +6,9 @@ public class NodeInfo {
     private String ip;
     private int port;
 
+    public NodeInfo() {
+    }
+
     public NodeInfo(String ip, int port) {
         this.ip = ip;
         this.port = port;
@@ -15,8 +18,16 @@ public class NodeInfo {
         return ip;
     }
 
+    public void setIp(String ip) {
+        this.ip = ip;
+    }
+
     public int getPort() {
         return port;
+    }
+
+    public void setPort(int port) {
+        this.port = port;
     }
 
     @Override
