@@ -8,6 +8,6 @@ public class NetUtil {
 
 
     public static String url(NodeInfo nodeInfo, String path) {
-        return MessageFormat.format("http://{0}:{1}/{3}", nodeInfo.getIp(), nodeInfo.getPort(), path);
+        return String.format("http://%s:%d/%s", nodeInfo.getIp(), nodeInfo.getPort(), path);
     }
 }

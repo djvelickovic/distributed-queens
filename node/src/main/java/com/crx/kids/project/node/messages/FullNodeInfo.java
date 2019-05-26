@@ -3,26 +3,26 @@ package com.crx.kids.project.node.messages;
 import com.crx.kids.project.common.NodeInfo;
 
 public class FullNodeInfo extends NodeInfo {
-    private Integer id;
+    private int id;
 
     public FullNodeInfo() {
     }
 
-    public FullNodeInfo(Integer id, String ip, int port) {
+    public FullNodeInfo(int id, String ip, int port) {
         super(ip, port);
         this.id = id;
     }
 
-    public FullNodeInfo(Integer id, NodeInfo nodeInfo) {
+    public FullNodeInfo(int id, NodeInfo nodeInfo) {
         super(nodeInfo.getIp(), nodeInfo.getPort());
         this.id = id;
     }
 
-    public Integer getId() {
+    public int getId() {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(int id) {
         this.id = id;
     }
 }

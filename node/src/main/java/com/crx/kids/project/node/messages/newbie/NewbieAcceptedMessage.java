@@ -1,26 +1,35 @@
 package com.crx.kids.project.node.messages.newbie;
 
-import com.crx.kids.project.common.NodeInfo;
+import com.crx.kids.project.node.messages.FullNodeInfo;
 import com.crx.kids.project.node.messages.Message;
 
-import java.util.Map;
-
 public class NewbieAcceptedMessage extends Message {
-    private Map<Integer, NodeInfo> routingTable;
+    // first must be smaller than second by id
+    private FullNodeInfo firstNeighbour;
+    private FullNodeInfo secondNeighbour;
 
     public NewbieAcceptedMessage() {
     }
 
-    public NewbieAcceptedMessage(int sender, int receiver, Map<Integer, NodeInfo> routingTable) {
+    public NewbieAcceptedMessage(int sender, int receiver, FullNodeInfo firstNeighbour, FullNodeInfo secondNeighbour) {
         super(sender, receiver);
-        this.routingTable = routingTable;
+        this.firstNeighbour = firstNeighbour;
+        this.secondNeighbour = secondNeighbour;
     }
 
-    public Map<Integer, NodeInfo> getRoutingTable() {
-        return routingTable;
+    public FullNodeInfo getFirstNeighbour() {
+        return firstNeighbour;
     }
 
-    public void setRoutingTable(Map<Integer, NodeInfo> routingTable) {
-        this.routingTable = routingTable;
+    public void setFirstNeighbour(FullNodeInfo firstNeighbour) {
+        this.firstNeighbour = firstNeighbour;
+    }
+
+    public FullNodeInfo getSecondNeighbour() {
+        return secondNeighbour;
+    }
+
+    public void setSecondNeighbour(FullNodeInfo secondNeighbour) {
+        this.secondNeighbour = secondNeighbour;
     }
 }

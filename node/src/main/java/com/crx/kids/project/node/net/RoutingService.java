@@ -86,9 +86,11 @@ public class RoutingService {
 
         int maxCommonIndex = -1;
 
+        logger.info("chains {}, {}", list1, list2);
+
         for (int i = 0; i < minSize; i ++ ){
-            int n1 = list1.get(i);
-            int n2 = list2.get(i);
+            int n1 = list1.get(list1.size() - 1 - i);
+            int n2 = list2.get(list2.size() - 1 - i);
 
             if (n1 == n2) {
                 maxCommonIndex = 0;
@@ -97,6 +99,7 @@ public class RoutingService {
                 break;
             }
         }
+
         return maxCommonIndex;
     }
 

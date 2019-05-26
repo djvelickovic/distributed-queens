@@ -5,6 +5,7 @@ import com.crx.kids.project.node.messages.AlterRoutingTableMessage;
 import com.crx.kids.project.node.messages.response.CommonResponse;
 import com.crx.kids.project.node.messages.newbie.NewbieAcceptedMessage;
 import com.crx.kids.project.node.messages.newbie.NewbieJoinMessage;
+import com.crx.kids.project.node.messages.response.CommonType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,21 +34,27 @@ public class NetworkEndpoint {
     @PostMapping(path = "neighbours", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResponse> alterNeighbours(@RequestBody AlterRoutingTableMessage alterRoutingTableMessage) {
         networkService.alterRoutingTable(alterRoutingTableMessage);
-        return ResponseEntity.ok().build();
+
+        CommonResponse commonResponse = new CommonResponse();
+        commonResponse.setType(CommonType.OK);
+        return ResponseEntity.ok().body(commonResponse);
     }
 
     @PostMapping(path = "newbie-join", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResponse> newbieConnect(@RequestBody NewbieJoinMessage newbieJoinMessage) {
         // async message!
         networkService.newbieJoinAsync(newbieJoinMessage);
-        return ResponseEntity.ok().build();
+        CommonResponse commonResponse = new CommonResponse();
+        commonResponse.setType(CommonType.OK);
+        return ResponseEntity.ok().body(commonResponse);
     }
 
     @PostMapping(path = "newbie-accepted", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResponse> newbieAccepted(@RequestBody NewbieAcceptedMessage newbieAcceptedMessage) {
         networkService.newbieAccepted(newbieAcceptedMessage);
-        return ResponseEntity.ok().build();
-    }
+        CommonResponse commonResponse = new CommonResponse();
+        commonResponse.setType(CommonType.OK);
+        return ResponseEntity.ok().body(commonResponse);    }
 
 
 
