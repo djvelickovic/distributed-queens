@@ -75,7 +75,6 @@ public class NetworkEndpoint {
         return ResponseEntity.ok().body(commonResponse);
     }
 
-
     @PostMapping(path = "ping", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResponse> ping(@RequestBody PingMessage pingMessage) {
         if (pingMessage.getReceiver() != Configuration.id) {
@@ -86,8 +85,4 @@ public class NetworkEndpoint {
         logger.info(pingMessage.toString());
         return ResponseEntity.ok().body(new CommonResponse(CommonType.OK));
     }
-
-
-
-
 }
