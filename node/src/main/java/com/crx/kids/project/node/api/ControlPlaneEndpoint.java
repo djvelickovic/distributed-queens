@@ -10,7 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping(path = "api")
+@RequestMapping(path = "control")
 public class ControlPlaneEndpoint {
 
     private static final Logger logger = LoggerFactory.getLogger(ControlPlaneEndpoint.class);
