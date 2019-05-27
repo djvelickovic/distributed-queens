@@ -7,6 +7,7 @@ import com.crx.kids.project.node.messages.newbie.NewbieJoinMessage;
 import com.crx.kids.project.node.messages.newbie.PingMessage;
 import com.crx.kids.project.node.messages.response.CommonResponse;
 import com.crx.kids.project.node.messages.response.CommonType;
+import com.crx.kids.project.node.routing.RoutingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,10 +36,10 @@ public class NetworkEndpoint {
         return ResponseEntity.ok().body(statusResponse);
     }
 
-    @PostMapping(path = "neighbours", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    @PostMapping(path = "alter-neighbours", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResponse> alterNeighbours(@RequestBody AlterRoutingTableMessage alterRoutingTableMessage) {
         if (alterRoutingTableMessage.getReceiver() != Configuration.id) {
-            routingService.dispatchMessage(alterRoutingTableMessage, "node/net/neighbours");
+            routingService.dispatchMessage(alterRoutingTableMessage, Network.ALTER_NEIGHBOURS);
             return ResponseEntity.ok(new CommonResponse(CommonType.OK));
         }
 
@@ -48,13 +49,13 @@ public class NetworkEndpoint {
 
     @PostMapping(path = "newbie-join", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResponse> newbieConnect(@RequestBody NewbieJoinMessage newbieJoinMessage) {
+
         if (newbieJoinMessage.getReceiver() != Configuration.id) {
-            routingService.dispatchMessage(newbieJoinMessage, "node/net/newbie-join");
+            routingService.dispatchMessage(newbieJoinMessage, Network.NEWBIE_JOIN);
             return ResponseEntity.ok(new CommonResponse(CommonType.OK));
         }
 
-        // async message!
-        networkService.newbieJoinAsync(newbieJoinMessage);
+        networkService.newbieJoin(newbieJoinMessage);
         CommonResponse commonResponse = new CommonResponse();
         commonResponse.setType(CommonType.OK);
         return ResponseEntity.ok().body(commonResponse);
@@ -64,7 +65,7 @@ public class NetworkEndpoint {
     public ResponseEntity<CommonResponse> newbieAccepted(@RequestBody NewbieAcceptedMessage newbieAcceptedMessage) {
         // NOTE: This should be direct message, so no routing will occur.
         if (newbieAcceptedMessage.getReceiver() != Configuration.id) {
-            routingService.dispatchMessage(newbieAcceptedMessage, "node/net/newbie-accept");
+            routingService.dispatchMessage(newbieAcceptedMessage, Network.NEWBIE_ACCEPTED);
             return ResponseEntity.ok(new CommonResponse(CommonType.OK));
         }
 
@@ -77,16 +78,12 @@ public class NetworkEndpoint {
 
     @PostMapping(path = "ping", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResponse> ping(@RequestBody PingMessage pingMessage) {
-
-        logger.info("III "+pingMessage.toString());
-        // NOTE: This should be direct message, so no routing will occur.
         if (pingMessage.getReceiver() != Configuration.id) {
-            routingService.dispatchMessage(pingMessage, "node/net/ping");
+            routingService.dispatchMessage(pingMessage, Network.PING);
             return ResponseEntity.ok(new CommonResponse(CommonType.OK));
         }
 
         logger.info(pingMessage.toString());
-
         return ResponseEntity.ok().body(new CommonResponse(CommonType.OK));
     }
 

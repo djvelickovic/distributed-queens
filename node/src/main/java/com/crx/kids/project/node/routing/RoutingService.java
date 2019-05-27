@@ -1,24 +1,21 @@
-package com.crx.kids.project.node.net;
+package com.crx.kids.project.node.routing;
 
 import com.crx.kids.project.common.NodeInfo;
+import com.crx.kids.project.common.util.Result;
 import com.crx.kids.project.node.Configuration;
 import com.crx.kids.project.node.ThreadUtil;
+import com.crx.kids.project.node.comm.NodeGateway;
 import com.crx.kids.project.node.messages.FullNodeInfo;
 import com.crx.kids.project.node.messages.Message;
 import com.crx.kids.project.node.messages.Trace;
-import com.crx.kids.project.node.messages.response.CommonResponse;
-import com.crx.kids.project.node.routing.RoutingUtils;
+import com.crx.kids.project.node.net.Network;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Supplier;
 
 @Service
@@ -26,14 +23,18 @@ public class RoutingService {
 
     private static final Logger logger = LoggerFactory.getLogger(RoutingService.class);
 
+
+    @Autowired
+    private NodeGateway nodeGateway;
+
     /**
-     *   c1 | c2
+     *   c1-> c2
      *   -------
-     *0. 14   12
-     *1.  7    6
+     *0.  1    1
+     *1.  2 -  2
      *2.  4    3
-     *3.  2 -  2
-     *4.  1    1
+     *3.  7    6
+     *4. 14   12
      *
      * @param receiver
      * @return
@@ -61,18 +62,18 @@ public class RoutingService {
 
         // switch to receiver chain, find best max
         if (maxCommonNumberPosition + 1 == senderChain.size()) {
-            for (int i = 0; i <= maxCommonNumber; i++) {
+            for (int i = receiverChain.size() - 1; i > maxCommonNumberPosition ; i--) { // >= or >
                 nextHop = neighbours.get().getOrDefault(receiverChain.get(i), null);
                 if (nextHop != null) {
-                    return Optional.of(new FullNodeInfo(i, nextHop));
+                    return Optional.of(new FullNodeInfo(receiverChain.get(i), nextHop));
                 }
             }
         }
         else { // switch on sender chain find best min
-            for (int i = maxCommonNumberPosition; i >= 0; i--) {
+            for (int i = maxCommonNumberPosition; i < senderChain.size() - 2; i--) { // exclude myself?
                 nextHop = neighbours.get().getOrDefault(senderChain.get(i), null);
                 if (nextHop != null) {
-                    return Optional.of(new FullNodeInfo(i, nextHop));
+                    return Optional.of(new FullNodeInfo(senderChain.get(i), nextHop));
                 }
             }
         }
@@ -90,7 +91,6 @@ public class RoutingService {
     @Async
     public void dispatchMessage(Message message, String path) {
         try {
-            RestTemplate restTemplate = new RestTemplate();
             message.addTrace(new Trace(Configuration.id, "Rerouted."));
 
             // loop until next hop is determined
@@ -104,16 +104,16 @@ public class RoutingService {
                 return null;
             });
 
-            String url = NetUtil.url(nextHop, path);
-            logger.info("Rerouting message {} to {}", message, nextHop);
+            logger.info("Dispatching message {} to {}", message, nextHop);
 
-            ResponseEntity<CommonResponse> response = restTemplate.postForEntity(url, message, CommonResponse.class);
-            CommonResponse commonResponse = response.getBody();
+            Result result = nodeGateway.send(message, nextHop, path);
 
-            // TODO: handle various of responses, but assume for now, that all responses will be OK
-
-            logger.info("Dispatch response {}", response);
-
+            if (result.isError()) {
+                logger.error("Error dispatching message. Error: {}", result.getError());
+            }
+            else {
+                logger.info("Message successfully dispatched.");
+            }
         }
         catch (Exception e) {
             logger.error("Error while dispatching message", e);
@@ -129,11 +129,11 @@ public class RoutingService {
         logger.info("chains {}, {}", list1, list2);
 
         for (int i = 0; i < minSize; i ++ ){
-            int n1 = list1.get(list1.size() - 1 - i);
-            int n2 = list2.get(list2.size() - 1 - i);
+            int n1 = list1.get(i);
+            int n2 = list2.get(i);
 
             if (n1 == n2) {
-                maxCommonIndex = minSize - 1 - i;
+                maxCommonIndex = i;
             }
             if (n1 != n2) {
                 break;
@@ -162,6 +162,7 @@ public class RoutingService {
             nodeId = RoutingUtils.darah(nodeId);
         }
         chain.add(1);
+        Collections.reverse(chain);
         return chain;
     }
 

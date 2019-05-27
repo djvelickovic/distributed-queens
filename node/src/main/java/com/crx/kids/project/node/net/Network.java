@@ -16,4 +16,10 @@ public class Network {
     public static FullNodeInfo firstSmallestNeighbour;
     public static FullNodeInfo secondSmallestNeighbour;
 
+    public static String NEWBIE_JOIN = "node/net/newbie-join";
+    public static String NEWBIE_ACCEPTED = "node/net/newbie-accepted";
+    public static String ALTER_NEIGHBOURS = "node/net/alter-neighbours";
+    public static String PING = "node/net/ping";
+
+
 }

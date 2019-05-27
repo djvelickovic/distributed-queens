@@ -1,30 +1,17 @@
 package com.crx.kids.project.node.messages.response;
 
-import java.util.Map;
+import com.crx.kids.project.common.NodeInfo;
 
 public class CommonResponse {
     private CommonType type;
-    private Map<String, String> parameters;
-    private Object payload;
+    private NodeInfo redirectNode;
+    private String comment;
 
     public CommonResponse() {
     }
 
     public CommonResponse(CommonType type) {
         this.type = type;
-    }
-
-    public CommonResponse(CommonType type, Map<String, String> parameters) {
-        this.type = type;
-        this.parameters = parameters;
-    }
-
-    public Object getPayload() {
-        return payload;
-    }
-
-    public void setPayload(Object payload) {
-        this.payload = payload;
     }
 
     public CommonType getType() {
@@ -35,19 +22,19 @@ public class CommonResponse {
         this.type = type;
     }
 
-    public Map<String, String> getParameters() {
-        return parameters;
+    public NodeInfo getRedirectNode() {
+        return redirectNode;
     }
 
-    public void setParameters(Map<String, String> parameters) {
-        this.parameters = parameters;
+    public void setRedirectNode(NodeInfo redirectNode) {
+        this.redirectNode = redirectNode;
     }
 
-    @Override
-    public String toString() {
-        return "CommonResponse{" +
-                "type=" + type +
-                ", parameters=" + parameters +
-                '}';
+    public String getComment() {
+        return comment;
+    }
+
+    public void setComment(String comment) {
+        this.comment = comment;
     }
 }
