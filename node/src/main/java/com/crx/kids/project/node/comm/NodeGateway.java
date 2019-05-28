@@ -21,7 +21,7 @@ public class NodeGateway {
 
     public Result send(Message message, NodeInfo nextHop, String path) {
         String url = NetUtil.url(nextHop, path);
-        logger.info("Url for sending: {}", url);
+        logger.debug("Url for sending: {}", url);
 
         try {
             RestTemplate client = new RestTemplate();

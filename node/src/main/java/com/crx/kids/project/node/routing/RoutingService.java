@@ -16,7 +16,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
@@ -45,7 +48,7 @@ public class RoutingService {
      * @param receiver
      * @return
      */
-    public Optional<FullNodeInfo> nextHop(int sender, int receiver, Supplier<Map<Integer, NodeInfo>> neighbours) {
+    private Optional<FullNodeInfo> nextHop(int sender, int receiver, Supplier<Map<Integer, NodeInfo>> neighbours) {
         if (Network.neighbours.isEmpty()) {
             return Optional.empty();
         }
@@ -60,8 +63,8 @@ public class RoutingService {
 
         // second try to utilize algorithm for finding next hop
 
-        List<Integer> senderChain = chain(sender);
-        List<Integer> receiverChain = chain(receiver);
+        List<Integer> senderChain = RoutingUtils.chain(sender);
+        List<Integer> receiverChain = RoutingUtils.chain(receiver);
 
         int maxCommonNumberPosition = maxCommonNumber(senderChain, receiverChain);
         int maxCommonNumber = senderChain.get(maxCommonNumberPosition);
@@ -100,7 +103,7 @@ public class RoutingService {
 
     @Async
     public void broadcastNewMessage(String path) {
-        logger.info("Broadcast message to {}", path);
+        logger.info("Creating and broadcasting {} message to neighbours.", path);
         broadcastMessage(new BroadcastMessage(Configuration.id, broadcastCounter.incrementAndGet()), path);
     }
 
@@ -111,6 +114,8 @@ public class RoutingService {
         }
 
         try {
+            logger.info("re-broadcasting message {}. Action: {}", message, path);
+
             message.addTrace(new Trace(Configuration.id, "Broadcast."));
 
             List<Result> broadcastResults = Network.neighbours.entrySet().stream()
@@ -118,8 +123,6 @@ public class RoutingService {
                     .map(Map.Entry::getValue)
                     .map(nodeInfo -> nodeGateway.send(message, nodeInfo, path))
                     .collect(Collectors.toList());
-
-            logger.info("Broadcasting message {}", message);
 
             broadcastResults.stream()
                     .filter(Result::isError)
@@ -133,7 +136,7 @@ public class RoutingService {
 
         }
         catch (Exception e) {
-            logger.error("Error while dispatching message", e);
+            logger.error("Error while broadcasting message", e);
         }
     }
 
@@ -171,11 +174,11 @@ public class RoutingService {
 
 
     private int maxCommonNumber(List<Integer> list1, List<Integer> list2) {
-        int minSize = min(list1.size(), list2.size());
+        int minSize = RoutingUtils.min(list1.size(), list2.size());
 
         int maxCommonIndex = -1;
 
-        logger.info("chains {}, {}", list1, list2);
+        logger.info("Routing chains {}, {}", list1, list2);
 
         for (int i = 0; i < minSize; i ++ ){
             int n1 = list1.get(i);
@@ -189,30 +192,12 @@ public class RoutingService {
             }
         }
 
-        logger.info("Max common index {}", maxCommonIndex);
-
+        logger.debug("Max common index {}", maxCommonIndex);
 
         return maxCommonIndex;
     }
 
-    public int min(int n1, int n2) {
-        return n1 < n2 ? n1 : n2;
-    }
 
-    public int max(int n1, int n2) {
-        return n1 > n2 ? n1 : n2;
-    }
 
-    public List<Integer> chain(int nodeId) {
-        List<Integer> chain = new ArrayList<>();
-
-        while (nodeId != 1) {
-            chain.add(nodeId);
-            nodeId = RoutingUtils.darah(nodeId);
-        }
-        chain.add(1);
-        Collections.reverse(chain);
-        return chain;
-    }
 
 }
