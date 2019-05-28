@@ -7,6 +7,7 @@ import com.crx.kids.project.node.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,6 +15,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+@Service
 public class QueensService {
 
     private static final Logger logger = LoggerFactory.getLogger(QueensService.class);
@@ -22,6 +24,7 @@ public class QueensService {
 
     private static final Map<Integer, Map<Integer, QueensResult>> collectedResultsByDimensions = new ConcurrentHashMap<>();
 
+    private static final Set<Integer> finishedJobs = ConcurrentHashMap.newKeySet();
 
     public static int currentActiveDim;
 
@@ -47,10 +50,19 @@ public class QueensService {
         Map<Integer, QueensResult> resultsByDimension = new ConcurrentHashMap<>();
 
         if (collectedResultsByDimensions.putIfAbsent(dimension, resultsByDimension) != null) {
-            logger.error("work for dimension has been already started: {}", dimension);
+            logger.info("Work for dimension has been already started: {}", dimension);
+
+            if (finishedJobs.contains(dimension)) {
+                logger.error("Work for dimension finished: {}", dimension);
+            }
+            else {
+                logger.info("Resuming for dimension has been already started: {}", dimension);
+                currentActiveDim = dimension;
+            }
             return;
         }
 
+        currentActiveDim = dimension;
         logger.info("Starting work for dimension {}", dimension);
 
         Queue<QueensJob> jobs = jobsByDimensions.get(dimension);
@@ -65,13 +77,17 @@ public class QueensService {
 
         results.forEach(qr -> {
             if (qr.getResults() != null) {
-                System.out.println("---- "+qr.getQueensJob().getJobId());
-                qr.getResults().forEach(result -> System.out.println(Arrays.toString(result)));
+                logger.debug("---- "+qr.getQueensJob().getJobId());
+                qr.getResults().forEach(result -> logger.debug(Arrays.toString(result)));
             }
+
+            resultsByDimension.putIfAbsent(dimension, qr);
         });
+
+        logger.info("Finished work for dimension {}", dimension);
+        finishedJobs.add(dimension);
+        currentActiveDim = -1;
     }
-
-
 
     public List<QueensJob> pollJobs(int dimension, int maxJobs) {
         return null;
@@ -176,7 +192,7 @@ public class QueensService {
 //    _ _ _ _ Q?_
 //    _ Q _ _ _ _
 //    _ _ _ Q _ _ =
-    public boolean attack(Integer[] queens, int queen, int queenPosition) {
+    private boolean attack(Integer[] queens, int queen, int queenPosition) {
         if (queenPosition == 0) {
             return false;
         }

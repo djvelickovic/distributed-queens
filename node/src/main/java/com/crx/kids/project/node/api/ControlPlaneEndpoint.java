@@ -24,8 +24,8 @@ public class ControlPlaneEndpoint {
             return ResponseEntity.status(400).body(new ControlPlaneResponse("MISSING_PARAMETERS",""));
         }
 
-        boolean started = jobService.start(dimensionsDTO.getDimension());
-        if (started) {
+        Result result = jobService.start(dimensionsDTO.getDimension());
+        if (!result.isError()) {
             return ResponseEntity.ok(new ControlPlaneResponse("STARTED", "Started job for queens d = "+dimensionsDTO.getDimension()));
         }
         else {
