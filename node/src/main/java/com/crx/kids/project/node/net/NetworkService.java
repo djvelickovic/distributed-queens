@@ -44,15 +44,15 @@ public class NetworkService {
             logger.info("CheckIn response {}", checkInResponseOptional.get());
 
             Configuration.id = checkInResponseOptional.get().getId();
-            Network.firstKnownNode = checkInResponseOptional.get().getNodeInfo();
+            Network.maxNodeInSystem = Configuration.id;
 
+            Network.firstKnownNode = checkInResponseOptional.get().getNodeInfo();
 
             // join network,
             if (Network.firstKnownNode != null) {
                 int receiver = RoutingUtils.darah(Configuration.id);
                 NewbieJoinMessage newbieJoinMessage = new NewbieJoinMessage(Configuration.id, receiver, Configuration.myself);
                 // instead of calculating next hop, next hop is firsKnownNode
-
 
                 Result joinResult = nodeGateway.send(newbieJoinMessage, Network.firstKnownNode, Network.NEWBIE_JOIN);
 

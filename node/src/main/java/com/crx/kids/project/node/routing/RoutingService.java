@@ -5,6 +5,7 @@ import com.crx.kids.project.common.util.Result;
 import com.crx.kids.project.node.Configuration;
 import com.crx.kids.project.node.ThreadUtil;
 import com.crx.kids.project.node.comm.NodeGateway;
+import com.crx.kids.project.node.messages.BroadcastMessage;
 import com.crx.kids.project.node.messages.FullNodeInfo;
 import com.crx.kids.project.node.messages.Message;
 import com.crx.kids.project.node.messages.Trace;
@@ -16,13 +17,18 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 @Service
 public class RoutingService {
 
     private static final Logger logger = LoggerFactory.getLogger(RoutingService.class);
+    private static final Set<BroadcastMessage> broadcastMessages = ConcurrentHashMap.newKeySet();
 
+    private static final AtomicInteger broadcastCounter = new AtomicInteger(0);
 
     @Autowired
     private NodeGateway nodeGateway;
@@ -86,6 +92,49 @@ public class RoutingService {
                 .stream()
                 .map(e -> new FullNodeInfo(e.getKey(), e.getValue()))
                 .findAny();
+    }
+
+    private boolean containTraceFor(int nodeId, Message message) {
+        return message.getTrace().stream().anyMatch(t -> t.getNodeId() == nodeId);
+    }
+
+    @Async
+    public void broadcastNewMessage(String path) {
+        logger.info("Broadcast message to {}", path);
+        broadcastMessage(new BroadcastMessage(Configuration.id, broadcastCounter.incrementAndGet()), path);
+    }
+
+    @Async
+    public void broadcastMessage(BroadcastMessage message, String path) {
+        if (!broadcastMessages.add(message)) {
+            return;
+        }
+
+        try {
+            message.addTrace(new Trace(Configuration.id, "Broadcast."));
+
+            List<Result> broadcastResults = Network.neighbours.entrySet().stream()
+                    .filter(e -> !containTraceFor(e.getKey(), message))
+                    .map(Map.Entry::getValue)
+                    .map(nodeInfo -> nodeGateway.send(message, nodeInfo, path))
+                    .collect(Collectors.toList());
+
+            logger.info("Broadcasting message {}", message);
+
+            broadcastResults.stream()
+                    .filter(Result::isError)
+                    .map(Result::getError)
+                    .forEach(e -> logger.error("Error broadcasting message. Error: {}", e));
+
+            broadcastResults.stream()
+                    .filter(r -> !r.isError())
+                    .map(Result::getError)
+                    .forEach(e -> logger.info("Message successfully broadcast."));
+
+        }
+        catch (Exception e) {
+            logger.error("Error while dispatching message", e);
+        }
     }
 
     @Async

@@ -5,12 +5,13 @@ import java.util.List;
 
 public abstract class Message {
 
-    private int sender;
-    private int receiver;
+    protected int sender;
+    protected int receiver;
     private List<Trace> trace;
 
     public Message() {
     }
+
 
     public Message(int sender, int receiver) {
         this.sender = sender;

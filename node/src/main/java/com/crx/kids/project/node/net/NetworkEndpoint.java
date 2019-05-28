@@ -2,9 +2,10 @@ package com.crx.kids.project.node.net;
 
 import com.crx.kids.project.node.Configuration;
 import com.crx.kids.project.node.messages.AlterRoutingTableMessage;
+import com.crx.kids.project.node.messages.BroadcastMessage;
 import com.crx.kids.project.node.messages.newbie.NewbieAcceptedMessage;
 import com.crx.kids.project.node.messages.newbie.NewbieJoinMessage;
-import com.crx.kids.project.node.messages.newbie.PingMessage;
+import com.crx.kids.project.node.messages.PingMessage;
 import com.crx.kids.project.node.messages.response.CommonResponse;
 import com.crx.kids.project.node.messages.response.CommonType;
 import com.crx.kids.project.node.routing.RoutingService;
@@ -70,10 +71,50 @@ public class NetworkEndpoint {
         }
 
         networkService.newbieAccepted(newbieAcceptedMessage);
+
+        routingService.broadcastNewMessage(Network.BROADCAST_JOIN);
+
         CommonResponse commonResponse = new CommonResponse();
         commonResponse.setType(CommonType.OK);
         return ResponseEntity.ok().body(commonResponse);
     }
+
+    @PostMapping(path = "join-broadcast", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    public ResponseEntity<CommonResponse> joinBroadcast(@RequestBody BroadcastMessage discoveryBroadcastMessage) {
+        routingService.broadcastMessage(discoveryBroadcastMessage, Network.BROADCAST_JOIN);
+
+        try {
+            Network.maxNodeLock.writeLock().lock();
+            if (discoveryBroadcastMessage.getSender() > Network.maxNodeInSystem) {
+                logger.info("Discovered greater node in system. Replacing: {} with {}", Network.maxNodeInSystem, discoveryBroadcastMessage.getSender());
+                Network.maxNodeInSystem = discoveryBroadcastMessage.getSender();
+            }
+        }
+        finally {
+            Network.maxNodeLock.writeLock().unlock();
+        }
+
+        return ResponseEntity.ok(new CommonResponse(CommonType.OK));
+    }
+
+    @PostMapping(path = "leave-broadcast", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    public ResponseEntity<CommonResponse> leaveBroadcast(@RequestBody BroadcastMessage discoveryBroadcastMessage) {
+        routingService.broadcastMessage(discoveryBroadcastMessage, Network.BROADCAST_LEAVE);
+
+        try {
+            Network.maxNodeLock.writeLock().lock();
+            if (discoveryBroadcastMessage.getSender() == Network.maxNodeInSystem) {
+                logger.info("Max node in system left.");
+                Network.maxNodeInSystem = Network.maxNodeInSystem - 1;
+            }
+        }
+        finally {
+            Network.maxNodeLock.writeLock().unlock();
+        }
+
+        return ResponseEntity.ok(new CommonResponse(CommonType.OK));
+    }
+
 
     @PostMapping(path = "ping", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResponse> ping(@RequestBody PingMessage pingMessage) {

@@ -1,4 +1,4 @@
-package com.crx.kids.project.node.messages.newbie;
+package com.crx.kids.project.node.messages;
 
 import com.crx.kids.project.node.messages.Message;
 
