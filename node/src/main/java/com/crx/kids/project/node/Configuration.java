@@ -6,8 +6,8 @@ public class Configuration {
 
     public static NodeInfo myself;
     public static Integer id;
-
-
     public static NodeInfo bootstrap;
 
+
+    public static int limit = 10;
 }
