@@ -84,7 +84,14 @@ public class CriticalSectionService {
             criticalProcedure.accept(token);
             logger.info("CriticalSection procedure obtained and executed");
 
-            token.getSuzukiKasamiNodeMap().put(Configuration.id, CriticalSection.suzukiKasamiCounterByNodes.get(Configuration.id));
+//            token.getSuzukiKasamiNodeMap().put(Configuration.id, CriticalSection.suzukiKasamiCounterByNodes.get(Configuration.id));
+            token.getSuzukiKasamiNodeMap().compute(Configuration.id, (nodeId, value) -> {
+                if (value == null) {
+                    return 1;
+                }
+                return value + 1;
+            });
+
 
             updateToken(token);
         }
@@ -115,6 +122,7 @@ public class CriticalSectionService {
                 }
             });
 
+            // if token is idle, send it
             if (CriticalSection.tokenIdle.compareAndSet(true, false)) {
                 updateToken(CriticalSection.token);
             }
@@ -131,36 +139,41 @@ public class CriticalSectionService {
             int rn = CriticalSection.suzukiKasamiCounterByNodes.getOrDefault(i, 0);
             int ln = token.getSuzukiKasamiNodeMap().getOrDefault(i, 0);
 
-            if (rn == ln + 1) { // rn > ln
-                boolean hasNode = token.getQueue().stream().anyMatch(node -> node == i);
-                if (!hasNode) {
+            logger.info("TOKEN: {}.  rn = {}, ln = {}", i, rn, ln);
+
+//            if (rn == ln + 1) { // rn > ln
+            if (rn > ln) {
+
+                if (token.getQueue().stream().noneMatch(node -> node == i)) {
+                    logger.info("TOKEN: Adding to queue: {}", i);
                     token.getQueue().add(i);
                 }
-                else {
-                    logger.warn("Skipping adding node to queue due its existence. Node {}", i);
-                }
             }
-
         });
-//        for (int i = 1; i <= Network.maxNodeInSystem; i++) {
-//
-//        }
 
-        logger.info("Token updated {}", token);
+
+        logger.info("TOKEN: {}", token);
 
         if (token.getQueue().isEmpty()) {
-            logger.warn("There are no waiter for cirital section in Queue. Setting token idle");
+            logger.warn("There are no waiter for critical section in Queue. Setting token idle");
             CriticalSection.token = token;
             CriticalSection.tokenIdle.set(true);
+
         }
         else {
             CriticalSection.tokenIdle.set(false);
-            CriticalSection.token = null;
-            int nextNode = token.getQueue().poll();
-            SuzukiKasamiTokenMessage suzukiKasamiTokenMessage = new SuzukiKasamiTokenMessage(Configuration.id, nextNode, token);
-            routingService.dispatchMessage(suzukiKasamiTokenMessage, Network.CRITICAL_SECTION_TOKEN);
-        }
 
+            Integer nextNode = token.getQueue().poll();
+
+            if (Configuration.id.equals(nextNode)) {
+                handleSuzukiKasamiToken(token);
+            }
+            else {
+                CriticalSection.token = null;
+                SuzukiKasamiTokenMessage suzukiKasamiTokenMessage = new SuzukiKasamiTokenMessage(Configuration.id, nextNode, token);
+                routingService.dispatchMessage(suzukiKasamiTokenMessage, Network.CRITICAL_SECTION_TOKEN);
+            }
+        }
     }
 
 }
