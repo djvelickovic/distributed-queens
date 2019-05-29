@@ -1,9 +1,12 @@
 package com.crx.kids.project.node.net;
 
 import com.crx.kids.project.node.Configuration;
+import com.crx.kids.project.node.cs.CriticalSection;
+import com.crx.kids.project.node.cs.CriticalSectionService;
 import com.crx.kids.project.node.messages.AlterRoutingTableMessage;
 import com.crx.kids.project.node.messages.BroadcastMessage;
 import com.crx.kids.project.node.messages.PingMessage;
+import com.crx.kids.project.node.messages.SuzukiKasamiTokenMessage;
 import com.crx.kids.project.node.messages.newbie.NewbieAcceptedMessage;
 import com.crx.kids.project.node.messages.newbie.NewbieJoinMessage;
 import com.crx.kids.project.node.messages.response.CommonResponse;
@@ -27,6 +30,9 @@ public class NetworkEndpoint {
 
     @Autowired
     private RoutingService routingService;
+
+    @Autowired
+    private CriticalSectionService criticalSectionService;
 
     @GetMapping(path = "stats", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity getAllNeighbours() {
@@ -72,7 +78,7 @@ public class NetworkEndpoint {
 
         networkService.newbieAccepted(newbieAcceptedMessage);
 
-        routingService.broadcastNewMessage(Network.BROADCAST_JOIN);
+        routingService.initiateBroadcast(Network.BROADCAST_JOIN);
 
         CommonResponse commonResponse = new CommonResponse();
         commonResponse.setType(CommonType.OK);
@@ -80,7 +86,7 @@ public class NetworkEndpoint {
     }
 
     @PostMapping(path = "join-broadcast", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public ResponseEntity<CommonResponse> joinBroadcast(@RequestBody BroadcastMessage discoveryBroadcastMessage) {
+    public ResponseEntity<CommonResponse> joinBroadcast(@RequestBody BroadcastMessage<String> discoveryBroadcastMessage) {
         routingService.broadcastMessage(discoveryBroadcastMessage, Network.BROADCAST_JOIN);
 
         try {
@@ -98,7 +104,7 @@ public class NetworkEndpoint {
     }
 
     @PostMapping(path = "leave-broadcast", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public ResponseEntity<CommonResponse> leaveBroadcast(@RequestBody BroadcastMessage discoveryBroadcastMessage) {
+    public ResponseEntity<CommonResponse> leaveBroadcast(@RequestBody BroadcastMessage<String> discoveryBroadcastMessage) {
         routingService.broadcastMessage(discoveryBroadcastMessage, Network.BROADCAST_LEAVE);
 
         try {
@@ -115,6 +121,27 @@ public class NetworkEndpoint {
         return ResponseEntity.ok(new CommonResponse(CommonType.OK));
     }
 
+    @PostMapping(path = "critical-section-broadcast", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    public ResponseEntity<CommonResponse> criticalSectionBroadcast(@RequestBody BroadcastMessage<Integer> criticalSectionBroadcast) {
+
+        routingService.broadcastMessage(criticalSectionBroadcast, Network.BROADCAST_CRITICAL_SECTION);
+        criticalSectionService.handleSuzukiKasamiBroadcastMessage(criticalSectionBroadcast);
+
+        return ResponseEntity.ok(new CommonResponse(CommonType.OK));
+    }
+
+    @PostMapping(path = "critical-section-token", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    public ResponseEntity<CommonResponse> token(@RequestBody SuzukiKasamiTokenMessage suzukiKasamiTokenMessage) {
+
+        if (suzukiKasamiTokenMessage.getReceiver() != Configuration.id) {
+            routingService.dispatchMessage(suzukiKasamiTokenMessage, Network.CRITICAL_SECTION_TOKEN);
+            return ResponseEntity.ok(new CommonResponse(CommonType.OK));
+        }
+
+        criticalSectionService.handleSuzukiKasamiTokenMessage(suzukiKasamiTokenMessage);
+
+        return ResponseEntity.ok(new CommonResponse(CommonType.OK));
+    }
 
     @PostMapping(path = "ping", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResponse> ping(@RequestBody PingMessage pingMessage) {

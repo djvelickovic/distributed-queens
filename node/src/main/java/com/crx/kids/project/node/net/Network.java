@@ -27,5 +27,8 @@ public class Network {
 
     public static String BROADCAST_JOIN = "node/net/join-broadcast";
     public static String BROADCAST_LEAVE = "node/net/leave-broadcast";
+    public static String BROADCAST_CRITICAL_SECTION = "node/net/critical-section-broadcast";
+    public static String CRITICAL_SECTION_TOKEN = "node/net/critical-section-token";
+
 
 }

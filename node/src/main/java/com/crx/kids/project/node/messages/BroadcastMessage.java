@@ -2,22 +2,22 @@ package com.crx.kids.project.node.messages;
 
 import java.util.Objects;
 
-public class BroadcastMessage extends Message {
-    private int id;
+public class BroadcastMessage<T> extends Message {
+    private T id;
 
     public BroadcastMessage() {
     }
 
-    public BroadcastMessage(int sender, int id) {
+    public BroadcastMessage(int sender, T key) {
         super(sender, -1);
-        this.id = id;
+        this.id = key;
     }
 
-    public int getId() {
+    public T getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(T id) {
         this.id = id;
     }
 

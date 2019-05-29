@@ -16,12 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -31,7 +27,6 @@ public class RoutingService {
     private static final Logger logger = LoggerFactory.getLogger(RoutingService.class);
     private static final Set<BroadcastMessage> broadcastMessages = ConcurrentHashMap.newKeySet();
 
-    private static final AtomicInteger broadcastCounter = new AtomicInteger(0);
 
     @Autowired
     private NodeGateway nodeGateway;
@@ -105,9 +100,9 @@ public class RoutingService {
     }
 
     @Async
-    public void broadcastNewMessage(String path) {
+    public void initiateBroadcast(String path) {
         logger.info("Creating and broadcasting {} message to neighbours.", path);
-        broadcastMessage(new BroadcastMessage(Configuration.id, broadcastCounter.incrementAndGet()), path);
+        broadcastMessage(new BroadcastMessage<>(Configuration.id, UUID.randomUUID().toString()), path);
     }
 
     @Async
