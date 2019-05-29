@@ -57,7 +57,7 @@ public class RoutingService {
 
         // first find from neighbours
         if (nextHop != null) {
-            logger.info("{} is a neighbour", receiver);
+            logger.info("Next hop determined directly by routing table: {}", nextHop);
             return Optional.of(new FullNodeInfo(receiver, nextHop));
         }
 
@@ -67,21 +67,23 @@ public class RoutingService {
         List<Integer> receiverChain = RoutingUtils.chain(receiver);
 
         int maxCommonNumberPosition = maxCommonNumber(senderChain, receiverChain);
-        int maxCommonNumber = senderChain.get(maxCommonNumberPosition);
+//        int maxCommonNumber = senderChain.get(maxCommonNumberPosition);
 
         // switch to receiver chain, find best max
         if (maxCommonNumberPosition + 1 == senderChain.size()) {
             for (int i = receiverChain.size() - 1; i > maxCommonNumberPosition ; i--) { // >= or >
                 nextHop = neighbours.get().getOrDefault(receiverChain.get(i), null);
                 if (nextHop != null) {
+                    logger.info("Next hop determined by algorithm: {}", nextHop);
                     return Optional.of(new FullNodeInfo(receiverChain.get(i), nextHop));
                 }
             }
         }
         else { // switch on sender chain find best min
-            for (int i = maxCommonNumberPosition; i < senderChain.size() - 2; i--) { // exclude myself?
+            for (int i = maxCommonNumberPosition; i < senderChain.size(); i++) { // exclude myself?
                 nextHop = neighbours.get().getOrDefault(senderChain.get(i), null);
                 if (nextHop != null) {
+                    logger.info("Next hop determined by algorithm: {}", nextHop);
                     return Optional.of(new FullNodeInfo(senderChain.get(i), nextHop));
                 }
             }
@@ -89,11 +91,12 @@ public class RoutingService {
 
         // give any node, and see if it will have better luck,
         // TODO: reconsider to give empty response and to wait for node to be available
-        logger.error("Unable to find next hop by algorithm. Giving random neighbour.");
+//        logger.error("Unable to find next hop by algorithm. Giving random neighbour.");
         return neighbours.get()
                 .entrySet()
                 .stream()
                 .map(e -> new FullNodeInfo(e.getKey(), e.getValue()))
+                .peek(nodeInfo -> logger.warn("Next hop determined by random calculation from routing table: {}", nodeInfo))
                 .findAny();
     }
 
@@ -192,7 +195,7 @@ public class RoutingService {
             }
         }
 
-        logger.debug("Max common index {}", maxCommonIndex);
+        logger.info("Max common index {}", maxCommonIndex);
 
         return maxCommonIndex;
     }

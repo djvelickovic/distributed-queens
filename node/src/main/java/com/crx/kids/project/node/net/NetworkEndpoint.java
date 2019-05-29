@@ -123,7 +123,7 @@ public class NetworkEndpoint {
             return ResponseEntity.ok(new CommonResponse(CommonType.OK));
         }
 
-        logger.info(pingMessage.toString());
+        logger.info("Ping message received {}", pingMessage);
         return ResponseEntity.ok().body(new CommonResponse(CommonType.OK));
     }
 }
