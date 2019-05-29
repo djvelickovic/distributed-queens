@@ -112,7 +112,7 @@ public class RoutingService {
         }
 
         try {
-            logger.info("re-broadcasting message {}. Action: {}", message, path);
+            logger.info("Broadcasting message {}. Action: {}", message, path);
 
             message.addTrace(new Trace(Configuration.id, "Broadcast."));
 
@@ -130,7 +130,7 @@ public class RoutingService {
             broadcastResults.stream()
                     .filter(r -> !r.isError())
                     .map(Result::getError)
-                    .forEach(e -> logger.info("Message successfully broadcast."));
+                    .forEach(e -> logger.debug("Message successfully broadcast."));
 
         }
         catch (Exception e) {
@@ -150,7 +150,7 @@ public class RoutingService {
                     l.stop();
                     return optionalNextHop.get();
                 }
-                logger.warn("Unable to find next hope. Retry!");
+                logger.error("Unable to find next hope. Retry!");
                 return null;
             });
 
@@ -162,7 +162,7 @@ public class RoutingService {
                 logger.error("Error dispatching message. Error: {}", result.getError());
             }
             else {
-                logger.info("Message successfully dispatched.");
+                logger.debug("Message successfully dispatched.");
             }
         }
         catch (Exception e) {
@@ -176,7 +176,7 @@ public class RoutingService {
 
         int maxCommonIndex = -1;
 
-        logger.info("Routing chains {}, {}", list1, list2);
+        logger.debug("Routing chains {}, {}", list1, list2);
 
         for (int i = 0; i < minSize; i ++ ){
             int n1 = list1.get(i);
@@ -190,7 +190,7 @@ public class RoutingService {
             }
         }
 
-        logger.info("Max common index {}", maxCommonIndex);
+        logger.debug("Max common index {}", maxCommonIndex);
 
         return maxCommonIndex;
     }

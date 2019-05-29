@@ -5,8 +5,11 @@ import com.crx.kids.project.common.util.Result;
 import com.crx.kids.project.node.Configuration;
 import com.crx.kids.project.node.bootstrap.BootstrapService;
 import com.crx.kids.project.node.comm.NodeGateway;
+import com.crx.kids.project.node.cs.CriticalSection;
+import com.crx.kids.project.node.cs.CriticalSectionToken;
 import com.crx.kids.project.node.messages.AlterRoutingTableMessage;
 import com.crx.kids.project.node.messages.FullNodeInfo;
+import com.crx.kids.project.node.messages.SuzukiKasamiTokenMessage;
 import com.crx.kids.project.node.messages.newbie.NewbieAcceptedMessage;
 import com.crx.kids.project.node.messages.newbie.NewbieJoinMessage;
 import com.crx.kids.project.node.messages.response.CommonResponse;
@@ -65,6 +68,14 @@ public class NetworkService {
         else {
             logger.error("Shutting down application. No response from bootstrap.");
             System.exit(0);
+        }
+
+        if (Configuration.id == 1) {
+            CriticalSection.token = new CriticalSectionToken();
+            CriticalSection.token.getQueue();
+            CriticalSection.token.getSuzukiKasamiNodeMap();
+            CriticalSection.tokenIdle.set(true);
+            logger.info("TOKEND ASSIGNED TO NODE 1");
         }
 
         logger.info("Communication with bootstrap finished.");

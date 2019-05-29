@@ -1,5 +1,7 @@
 package com.crx.kids.project.node.cs;
 
+import com.crx.kids.project.node.messages.SuzukiKasamiTokenMessage;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -15,4 +17,5 @@ public class CriticalSection {
 
     public static final AtomicBoolean tokenIdle = new AtomicBoolean(false);
 
+    public static CriticalSectionToken token;
 }

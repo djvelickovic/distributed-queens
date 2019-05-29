@@ -1,5 +1,7 @@
 package com.crx.kids.project.node.messages;
 
+import com.crx.kids.project.node.cs.CriticalSectionToken;
+
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -7,40 +9,31 @@ import java.util.Queue;
 
 public class SuzukiKasamiTokenMessage extends Message {
 
-    private Queue<Integer> queue;
-    private Map<Integer, Integer> suzukiKasamiNodeMap;
+    private CriticalSectionToken criticalSectionToken;
 
     public SuzukiKasamiTokenMessage() {
         // do not use this constructor
     }
 
-    public SuzukiKasamiTokenMessage(int sender, int receiver) {
+    public SuzukiKasamiTokenMessage(int sender, int receiver, CriticalSectionToken token) {
         super(sender, receiver);
-        queue = new LinkedList<>();
-        suzukiKasamiNodeMap = new HashMap<>();
+        this.criticalSectionToken = token;
     }
 
-    public Queue<Integer> getQueue() {
-        return queue;
+    public CriticalSectionToken getCriticalSectionToken() {
+        return criticalSectionToken;
     }
 
-    public void setQueue(Queue<Integer> queue) {
-        this.queue = queue;
-    }
-
-    public Map<Integer, Integer> getSuzukiKasamiNodeMap() {
-        return suzukiKasamiNodeMap;
-    }
-
-    public void setSuzukiKasamiNodeMap(Map<Integer, Integer> suzukiKasamiNodeMap) {
-        this.suzukiKasamiNodeMap = suzukiKasamiNodeMap;
+    public void setCriticalSectionToken(CriticalSectionToken criticalSectionToken) {
+        this.criticalSectionToken = criticalSectionToken;
     }
 
     @Override
     public String toString() {
         return "SuzukiKasamiTokenMessage{" +
-                "queue=" + queue +
-                ", suzukiKasamiNodeMap=" + suzukiKasamiNodeMap +
+                "criticalSectionToken=" + criticalSectionToken +
+                ", sender=" + sender +
+                ", receiver=" + receiver +
                 '}';
     }
 }

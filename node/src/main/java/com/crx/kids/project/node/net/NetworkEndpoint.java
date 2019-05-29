@@ -138,7 +138,8 @@ public class NetworkEndpoint {
             return ResponseEntity.ok(new CommonResponse(CommonType.OK));
         }
 
-        criticalSectionService.handleSuzukiKasamiTokenMessage(suzukiKasamiTokenMessage);
+        logger.info("critical-section-token. Message {}", suzukiKasamiTokenMessage);
+        criticalSectionService.handleSuzukiKasamiToken(suzukiKasamiTokenMessage.getCriticalSectionToken());
 
         return ResponseEntity.ok(new CommonResponse(CommonType.OK));
     }
@@ -155,9 +156,16 @@ public class NetworkEndpoint {
     }
 
     @GetMapping(path = "critical", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public ResponseEntity<CommonResponse> critical(@RequestBody PingMessage pingMessage) {
+    public ResponseEntity<CommonResponse> critical() {
         criticalSectionService.submitProcedureForCriticalExecution((token) -> {
-            logger.info("EXECUTED UNDER CRITICAL SECTION! Q: {}, Nodes: {}", token.getQueue(), token.getSuzukiKasamiNodeMap());
+            logger.warn("Working...");
+
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            logger.warn("EXECUTED UNDER CRITICAL SECTION! Q: {}, Nodes: {}", token.getQueue(), token.getSuzukiKasamiNodeMap());
         });
 
         return ResponseEntity.ok().body(new CommonResponse(CommonType.OK));
