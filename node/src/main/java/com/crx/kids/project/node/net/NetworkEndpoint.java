@@ -153,4 +153,13 @@ public class NetworkEndpoint {
         logger.info("Ping message received {}", pingMessage);
         return ResponseEntity.ok().body(new CommonResponse(CommonType.OK));
     }
+
+    @GetMapping(path = "critical", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    public ResponseEntity<CommonResponse> critical(@RequestBody PingMessage pingMessage) {
+        criticalSectionService.submitProcedureForCriticalExecution((token) -> {
+            logger.info("EXECUTED UNDER CRITICAL SECTION! Q: {}, Nodes: {}", token.getQueue(), token.getSuzukiKasamiNodeMap());
+        });
+
+        return ResponseEntity.ok().body(new CommonResponse(CommonType.OK));
+    }
 }

@@ -11,8 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 @Service
@@ -21,7 +21,7 @@ public class CriticalSectionService {
     private static final Logger logger = LoggerFactory.getLogger(CriticalSectionService.class);
 
     // replace with map?!
-    private static final Queue<Consumer<Integer>> criticalSectionProceduresQueue = new ConcurrentLinkedQueue<>();
+    private static final Map<Integer, Consumer<SuzukiKasamiTokenMessage>> criticalSectionProceduresMap = new ConcurrentHashMap<>();
 
     @Autowired
     private RoutingService routingService;
@@ -42,23 +42,23 @@ public class CriticalSectionService {
         return suzukiKasamiId;
     }
 
-    public void submitProcedureForCriticalExecution(Consumer<Integer> criticalSectionProcedure) {
+    public void submitProcedureForCriticalExecution(Consumer<SuzukiKasamiTokenMessage> criticalSectionProcedure) {
         //TODO: check if node already have token an it is idle
         int suzukiKasamiBroadcastId = initiateSuzukiKasamiBroadcast(Network.BROADCAST_CRITICAL_SECTION);
-        criticalSectionProceduresQueue.add(criticalSectionProcedure);
+        criticalSectionProceduresMap.put(suzukiKasamiBroadcastId, criticalSectionProcedure);
         logger.info("Submitted critical section procedure for id {}", suzukiKasamiBroadcastId);
     }
 
     @Async
     public void handleSuzukiKasamiTokenMessage(SuzukiKasamiTokenMessage suzukiKasamiTokenMessage) {
         // TODO: calculate maps, check if token is old?
-        Consumer<Integer> criticalProcedure = criticalSectionProceduresQueue.poll();
+        Consumer<SuzukiKasamiTokenMessage> criticalProcedure = criticalSectionProceduresMap.get(-1);
         if (criticalProcedure == null) {
             logger.error("There is no critical section procedure for {} id", -1);
             return;
         }
         try {
-            criticalProcedure.accept(-1);
+            criticalProcedure.accept(suzukiKasamiTokenMessage);
             logger.info("CriticalSection procedure obtained and executed for {}", -1);
         }
         catch (Exception e) {
