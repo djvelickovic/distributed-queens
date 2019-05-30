@@ -2,6 +2,7 @@ package com.crx.kids.project.node.logic;
 
 import com.crx.kids.project.common.util.Result;
 import com.crx.kids.project.node.Configuration;
+import com.crx.kids.project.node.messages.JobState;
 import com.crx.kids.project.node.messages.QueensJobsMessage;
 import com.crx.kids.project.node.net.Network;
 import com.crx.kids.project.node.routing.RoutingService;
@@ -24,7 +25,7 @@ public class QueensService {
 
     private static final Map<Integer, Queue<QueensJob>> jobsByDimensions = new ConcurrentHashMap<>();
 
-    private static final Map<Integer, Map<Integer, QueensResult>> collectedResultsByDimensions = new ConcurrentHashMap<>();
+    private static final Map<Integer, Queue<QueensResult>> collectedResultsByDimensions = new ConcurrentHashMap<>();
 
     private static final Set<Integer> finishedJobs = ConcurrentHashMap.newKeySet();
 
@@ -58,9 +59,38 @@ public class QueensService {
         jobQueue.addAll(jobs);
     }
 
+    public List<JobState> getJobsStates() {
+        return  jobsByDimensions.entrySet().stream()
+                .map(e -> {
+                    Queue<QueensResult> resultQueue = collectedResultsByDimensions.get(e.getKey());
+                    if (resultQueue != null) {
+                        String status;
+                        if (e.getKey() == currentActiveDim){
+                            status = "active";
+                        }
+                        else if (e.getValue().size() == 0 && resultQueue.size() > 0){
+                            status = "done";
+                        }
+                        else if (e.getValue().size() != resultQueue.size()) {
+                            status = "paused";
+                        }
+                        else {
+                            logger.error("Shouldn not get here!");
+                            status = "fuzzy";
+                        }
+
+                        return new JobState(e.getKey(), status, resultQueue.size(), e.getValue().size());
+                    }
+                    return null;
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+    }
+
     @Async
     public void startWorkForDimension(int dimension) {
-        Map<Integer, QueensResult> resultsByDimension = new ConcurrentHashMap<>();
+        Queue<QueensResult> resultsByDimension = new ConcurrentLinkedQueue<>();
 
         if (collectedResultsByDimensions.putIfAbsent(dimension, resultsByDimension) != null) {
             logger.info("Work for dimension has been already started: {}", dimension);
@@ -80,7 +110,7 @@ public class QueensService {
 
         Queue<QueensJob> jobs = jobsByDimensions.get(dimension);
 
-        List<QueensResult> results = new ArrayList<>();
+        Queue<QueensResult> results = collectedResultsByDimensions.get(dimension);
 
         while (!jobs.isEmpty()) {
 
@@ -106,7 +136,7 @@ public class QueensService {
                 qr.getResults().forEach(result -> logger.info(Arrays.toString(result)));
             }
 
-            resultsByDimension.putIfAbsent(dimension, qr);
+            resultsByDimension.add(qr);
         });
 
         logger.info("Finished work for dimension {}", dimension);
@@ -264,7 +294,7 @@ public class QueensService {
         return results;
     }
 
-//    _ _ Q _ _ _
+    //    _ _ Q _ _ _
 //    Q _ _ _ _ _
 //    _ _ _ _ _ _
 //    _ _ _ _ Q?_

@@ -54,7 +54,7 @@ public class ControlPlaneEndpoint {
 
     @GetMapping(path = "status", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity status() {
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(jobService.getStatus());
     }
 
     @PostMapping(path = "pause", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)

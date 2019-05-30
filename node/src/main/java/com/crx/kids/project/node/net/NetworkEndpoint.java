@@ -1,6 +1,7 @@
 package com.crx.kids.project.node.net;
 
 import com.crx.kids.project.node.Configuration;
+import com.crx.kids.project.node.api.JobService;
 import com.crx.kids.project.node.cs.CriticalSection;
 import com.crx.kids.project.node.cs.CriticalSectionService;
 import com.crx.kids.project.node.logic.QueensService;
@@ -16,6 +17,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping(path = "net")
@@ -34,6 +38,9 @@ public class NetworkEndpoint {
 
     @Autowired
     private QueensService queensService;
+
+    @Autowired
+    private JobService jobService;
 
     @GetMapping(path = "stats", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity getAllNeighbours() {
@@ -194,4 +201,36 @@ public class NetworkEndpoint {
 
         return ResponseEntity.ok().body(new CommonResponse(CommonType.OK));
     }
+
+
+    @PostMapping(path = "queens-status", consumes = MediaType.APPLICATION_JSON_UTF8_VALUE, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    public ResponseEntity<CommonResponse> queenStatus(@RequestBody StatusRequestMessage statusRequestMessage) {
+
+        if (statusRequestMessage.getReceiver() != Configuration.id) {
+            routingService.dispatchMessage(statusRequestMessage, Network.QUEENS_STATUS);
+            return ResponseEntity.ok(new CommonResponse(CommonType.OK));
+        }
+
+        List<JobState> jobsStates = queensService.getJobsStates();
+
+        StatusMessage statusMessage = new StatusMessage(Configuration.id, statusRequestMessage.getSender(), statusRequestMessage.getStatusRequestId(), jobsStates);
+        routingService.dispatchMessage(statusMessage, Network.QUEENS_STATUS_COLLECTOR);
+
+        return ResponseEntity.ok().body(new CommonResponse(CommonType.OK));
+    }
+
+
+    @PostMapping(path = "queens-status-collector", consumes = MediaType.APPLICATION_JSON_UTF8_VALUE, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    public ResponseEntity<CommonResponse> queenStatusCollector(@RequestBody StatusMessage statusMessage) {
+
+        if (statusMessage.getReceiver() != Configuration.id) {
+            routingService.dispatchMessage(statusMessage, Network.QUEENS_STATUS_COLLECTOR);
+            return ResponseEntity.ok(new CommonResponse(CommonType.OK));
+        }
+
+        jobService.putStatusMessage(statusMessage);
+
+        return ResponseEntity.ok().body(new CommonResponse(CommonType.OK));
+    }
+
 }
