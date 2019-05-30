@@ -23,16 +23,19 @@ public class JobService {
 
     public Result start(int dimension) {
 
-        Result calculationResult = queensService.calculateJobsByDimension(dimension);
+        Result<Integer> calculationResult = queensService.calculateJobsByDimension(dimension);
 
         if (calculationResult.isError()) {
             return calculationResult;
         }
 
+        Result schedulingResult = queensService.scheduleJobs(dimension, calculationResult.getValue());
+
+        if (schedulingResult.isError()) {
+            return schedulingResult;
+        }
 
         queensService.startWorkForDimension(dimension);
-        // broadcast
-
 
         return Result.of(null);
     }

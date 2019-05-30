@@ -4,14 +4,19 @@ import com.crx.kids.project.common.util.Error;
 import com.crx.kids.project.common.util.ErrorCode;
 import com.crx.kids.project.common.util.Result;
 import com.crx.kids.project.node.Configuration;
+import com.crx.kids.project.node.messages.QueensJobsMessage;
+import com.crx.kids.project.node.net.Network;
+import com.crx.kids.project.node.routing.RoutingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -28,6 +33,9 @@ public class QueensService {
 
     public static int currentActiveDim;
 
+    @Autowired
+    private RoutingService routingService;
+
     public static void main(String[] args) {
         QueensService queensService = new QueensService();
 //        queensService.calculateResults(6);
@@ -39,10 +47,18 @@ public class QueensService {
 //        queensService.doQueensJob(new QueensJob(5, 125, 7));
 
 
-        queensService.calculateJobsByDimension(15);
-        queensService.startWorkForDimension(15);
+        queensService.calculateJobsByDimension(10);
+        queensService.startWorkForDimension(10);
+    }
 
+    public void addJobsForDimension(int dimension, List<QueensJob> jobs) {
+        Queue<QueensJob> jobQueue = new ConcurrentLinkedQueue<>();
 
+        if (jobsByDimensions.putIfAbsent(dimension, jobQueue) != null) {
+            jobQueue = jobsByDimensions.get(dimension);
+        }
+
+        jobQueue.addAll(jobs);
     }
 
     @Async
@@ -70,15 +86,27 @@ public class QueensService {
         List<QueensResult> results = new ArrayList<>();
 
         while (!jobs.isEmpty()) {
+
+            if (currentActiveDim != dimension) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                logger.info("Waiting calculations for dimension {}", dimension);
+                continue;
+            }
+
             QueensJob job = jobs.poll();
             QueensResult qr = doQueensJob(job);
             results.add(qr);
+
         }
 
         results.forEach(qr -> {
             if (qr.getResults() != null) {
                 logger.debug("---- "+qr.getQueensJob().getJobId());
-                qr.getResults().forEach(result -> logger.debug(Arrays.toString(result)));
+                qr.getResults().forEach(result -> logger.info(Arrays.toString(result)));
             }
 
             resultsByDimension.putIfAbsent(dimension, qr);
@@ -87,13 +115,38 @@ public class QueensService {
         logger.info("Finished work for dimension {}", dimension);
         finishedJobs.add(dimension);
         currentActiveDim = -1;
+
+        // TODO: steal jobs
+        // TODO: Broadcast results
     }
 
-    public List<QueensJob> pollJobs(int dimension, int maxJobs) {
-        return null;
+    private List<QueensJob> pollJobs(int dimension, int maxJobs) {
+
+        Queue<QueensJob> jobQueue = jobsByDimensions.get(dimension);
+
+        if (jobQueue == null) {
+            logger.error("There are no jobs for dimension {}", dimension);
+            return new ArrayList<>();
+        }
+
+        List<QueensJob> queensJobs = new ArrayList<>();
+
+        int i;
+        for (i = 0; i < maxJobs; i++) {
+            QueensJob queensJob = jobQueue.poll();
+            if (queensJob == null) {
+
+                break;
+            }
+            queensJobs.add(queensJob);
+        }
+
+        logger.info("Polled {} jobs for dimension {}. Remained {}", i, dimension, jobQueue.size());
+
+        return queensJobs;
     }
 
-    public Result calculateJobsByDimension(int dimension) {
+    public Result<Integer> calculateJobsByDimension(int dimension) {
         Queue<QueensJob> queensJobs =  new ConcurrentLinkedQueue<>();
 
         if (jobsByDimensions.putIfAbsent(dimension, queensJobs) != null) {
@@ -112,6 +165,22 @@ public class QueensService {
 
         // send broadcast, and wait for nodes to request their parts, after all nodes are responded, send them their parts.
         // TODO: how do we know if all nodes responded?
+
+        return Result.of(jobs);
+    }
+
+    public Result scheduleJobs(int dimension, int maxJobs) {
+
+        int maxNodeInSystem = Network.maxNodeInSystem;
+        int jobsPerNode = maxJobs / maxNodeInSystem;
+
+        IntStream.rangeClosed(1, maxNodeInSystem)
+                .filter(nodeId -> nodeId != Configuration.id)
+                .mapToObj(i -> {
+                    List<QueensJob> queensJobs = pollJobs(dimension, jobsPerNode);
+                    return new QueensJobsMessage(Configuration.id, i, dimension, queensJobs);
+                })
+                .forEach(m -> routingService.dispatchMessage(m, Network.QUEENS_JOBS));
 
         return Result.of(null);
     }

@@ -9,6 +9,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Network {
 
+
     public static NodeInfo firstKnownNode;
     public static final ReentrantReadWriteLock configurationLock = new ReentrantReadWriteLock();
     public static final ReentrantReadWriteLock maxNodeLock = new ReentrantReadWriteLock();
@@ -30,5 +31,6 @@ public class Network {
     public static String BROADCAST_CRITICAL_SECTION = "node/net/critical-section-broadcast";
     public static String CRITICAL_SECTION_TOKEN = "node/net/critical-section-token";
 
+    public static final String QUEENS_JOBS = "node/net/queens";
 
 }

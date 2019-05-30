@@ -3,10 +3,8 @@ package com.crx.kids.project.node.net;
 import com.crx.kids.project.node.Configuration;
 import com.crx.kids.project.node.cs.CriticalSection;
 import com.crx.kids.project.node.cs.CriticalSectionService;
-import com.crx.kids.project.node.messages.AlterRoutingTableMessage;
-import com.crx.kids.project.node.messages.BroadcastMessage;
-import com.crx.kids.project.node.messages.PingMessage;
-import com.crx.kids.project.node.messages.SuzukiKasamiTokenMessage;
+import com.crx.kids.project.node.logic.QueensService;
+import com.crx.kids.project.node.messages.*;
 import com.crx.kids.project.node.messages.newbie.NewbieAcceptedMessage;
 import com.crx.kids.project.node.messages.newbie.NewbieJoinMessage;
 import com.crx.kids.project.node.messages.response.CommonResponse;
@@ -33,6 +31,9 @@ public class NetworkEndpoint {
 
     @Autowired
     private CriticalSectionService criticalSectionService;
+
+    @Autowired
+    private QueensService queensService;
 
     @GetMapping(path = "stats", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity getAllNeighbours() {
@@ -167,6 +168,20 @@ public class NetworkEndpoint {
             }
             logger.warn("EXECUTED UNDER CRITICAL SECTION! Q: {}, Nodes: {}", token.getQueue(), token.getSuzukiKasamiNodeMap());
         });
+
+        return ResponseEntity.ok().body(new CommonResponse(CommonType.OK));
+    }
+
+
+    @PostMapping(path = "queens", consumes = MediaType.APPLICATION_JSON_UTF8_VALUE, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    public ResponseEntity<CommonResponse> queens(@RequestBody QueensJobsMessage queensJobsMessage) {
+        if (queensJobsMessage.getReceiver() != Configuration.id) {
+            routingService.dispatchMessage(queensJobsMessage, Network.QUEENS_JOBS);
+            return ResponseEntity.ok(new CommonResponse(CommonType.OK));
+        }
+
+        queensService.addJobsForDimension(queensJobsMessage.getDimension(), queensJobsMessage.getJobs());
+        queensService.startWorkForDimension(queensJobsMessage.getDimension());
 
         return ResponseEntity.ok().body(new CommonResponse(CommonType.OK));
     }

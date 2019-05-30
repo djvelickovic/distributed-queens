@@ -1,7 +1,9 @@
 package com.crx.kids.project.node.api;
 
 import com.crx.kids.project.common.util.Result;
+import com.crx.kids.project.node.cs.CriticalSectionService;
 import com.crx.kids.project.node.logic.QueensResult;
+import com.crx.kids.project.node.routing.RoutingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,19 +20,31 @@ public class ControlPlaneEndpoint {
     @Autowired
     private JobService jobService;
 
+    @Autowired
+    private CriticalSectionService criticalSectionService;
+
+    @Autowired
+    private RoutingService routingService;
+
     @PostMapping(path = "start", consumes = MediaType.APPLICATION_JSON_UTF8_VALUE, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity start(@RequestBody DimensionsDTO dimensionsDTO) {
         if (dimensionsDTO.getDimension() == null || dimensionsDTO.getDimension() < 1) {
             return ResponseEntity.status(400).body(new ControlPlaneResponse("MISSING_PARAMETERS",""));
         }
 
-        Result result = jobService.start(dimensionsDTO.getDimension());
-        if (!result.isError()) {
-            return ResponseEntity.ok(new ControlPlaneResponse("STARTED", "Started job for queens d = "+dimensionsDTO.getDimension()));
-        }
-        else {
-            return ResponseEntity.ok(new ControlPlaneResponse("ERROR", "Job has been already started for queens d = "+dimensionsDTO.getDimension()));
-        }
+        criticalSectionService.submitProcedureForCriticalExecution(i -> {
+            Result result = jobService.start(dimensionsDTO.getDimension());
+
+            if (!result.isError()) {
+                logger.info("Started job for queens d = "+dimensionsDTO.getDimension());
+//                routingService.broadcastMessage(null, null);
+            }
+            else {
+                logger.warn("Job has been already started for queens d = "+dimensionsDTO.getDimension());
+            }
+        });
+
+        return ResponseEntity.ok(new ControlPlaneResponse("OK", ""));
     }
 
     @GetMapping(path = "status", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
