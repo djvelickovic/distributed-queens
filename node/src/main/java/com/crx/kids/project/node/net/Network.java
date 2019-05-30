@@ -32,5 +32,5 @@ public class Network {
     public static String CRITICAL_SECTION_TOKEN = "node/net/critical-section-token";
 
     public static final String QUEENS_JOBS = "node/net/queens";
-
+    public static final String QUEENS_START = "node/net/queens-start";
 }

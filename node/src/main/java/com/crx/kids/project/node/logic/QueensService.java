@@ -1,7 +1,5 @@
 package com.crx.kids.project.node.logic;
 
-import com.crx.kids.project.common.util.Error;
-import com.crx.kids.project.common.util.ErrorCode;
 import com.crx.kids.project.common.util.Result;
 import com.crx.kids.project.node.Configuration;
 import com.crx.kids.project.node.messages.QueensJobsMessage;
@@ -16,7 +14,6 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -31,7 +28,7 @@ public class QueensService {
 
     private static final Set<Integer> finishedJobs = ConcurrentHashMap.newKeySet();
 
-    public static int currentActiveDim;
+    public static volatile int currentActiveDim;
 
     @Autowired
     private RoutingService routingService;
@@ -121,6 +118,9 @@ public class QueensService {
     }
 
     private List<QueensJob> pollJobs(int dimension, int maxJobs) {
+        if (maxJobs <= 0) {
+            return new ArrayList<>();
+        }
 
         Queue<QueensJob> jobQueue = jobsByDimensions.get(dimension);
 
@@ -146,11 +146,16 @@ public class QueensService {
         return queensJobs;
     }
 
-    public Result<Integer> calculateJobsByDimension(int dimension) {
+    public void calculateJobsByDimension(int dimension) {
         Queue<QueensJob> queensJobs =  new ConcurrentLinkedQueue<>();
 
         if (jobsByDimensions.putIfAbsent(dimension, queensJobs) != null) {
-            return Result.error(Error.of(ErrorCode.JOB_ERROR, "Jobs are already calculated for dim "+dimension));
+            Result schedResult = scheduleJobs(dimension, 0);
+            if (schedResult.isError()) {
+                logger.error("Error scheduling results for zero {}", schedResult.getError());
+            }
+            logger.warn("Jobs are already calculated for dim {}", dimension);
+            return;
         }
 
         int jobs = getMaxJobNumberForDimension(dimension);
@@ -166,10 +171,14 @@ public class QueensService {
         // send broadcast, and wait for nodes to request their parts, after all nodes are responded, send them their parts.
         // TODO: how do we know if all nodes responded?
 
-        return Result.of(jobs);
+        Result schedResult = scheduleJobs(dimension, jobs);
+
+        if (schedResult.isError()) {
+            logger.error("Error scheduling results {}", schedResult.getError());
+        }
     }
 
-    public Result scheduleJobs(int dimension, int maxJobs) {
+    private Result scheduleJobs(int dimension, int maxJobs) {
 
         int maxNodeInSystem = Network.maxNodeInSystem;
         int jobsPerNode = maxJobs / maxNodeInSystem;
