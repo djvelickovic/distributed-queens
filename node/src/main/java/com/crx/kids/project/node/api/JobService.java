@@ -35,7 +35,8 @@ public class JobService {
 
 
     public boolean pause() {
-        return false;
+        QueensService.currentActiveDim = -1;
+        return true;
     }
 
 

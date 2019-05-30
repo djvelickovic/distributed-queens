@@ -10,6 +10,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class Network {
 
 
+
     public static NodeInfo firstKnownNode;
     public static final ReentrantReadWriteLock configurationLock = new ReentrantReadWriteLock();
     public static final ReentrantReadWriteLock maxNodeLock = new ReentrantReadWriteLock();
@@ -33,4 +34,5 @@ public class Network {
 
     public static final String QUEENS_JOBS = "node/net/queens";
     public static final String QUEENS_START = "node/net/queens-start";
+    public static final String QUEENS_PAUSE = "node/net/queens-pause";
 }

@@ -185,4 +185,13 @@ public class NetworkEndpoint {
 
         return ResponseEntity.ok().body(new CommonResponse(CommonType.OK));
     }
+
+    @PostMapping(path = "queens-pause", consumes = MediaType.APPLICATION_JSON_UTF8_VALUE, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    public ResponseEntity<CommonResponse> queens(@RequestBody BroadcastMessage<String> pauseMessage) {
+
+        routingService.broadcastMessage(pauseMessage, Network.QUEENS_PAUSE);
+        QueensService.currentActiveDim = -1;
+
+        return ResponseEntity.ok().body(new CommonResponse(CommonType.OK));
+    }
 }

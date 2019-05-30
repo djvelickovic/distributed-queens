@@ -1,8 +1,11 @@
 package com.crx.kids.project.node.api;
 
 import com.crx.kids.project.common.util.Result;
+import com.crx.kids.project.node.Configuration;
 import com.crx.kids.project.node.cs.CriticalSectionService;
 import com.crx.kids.project.node.logic.QueensResult;
+import com.crx.kids.project.node.messages.BroadcastMessage;
+import com.crx.kids.project.node.net.Network;
 import com.crx.kids.project.node.routing.RoutingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,6 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping(path = "control")
@@ -55,13 +60,18 @@ public class ControlPlaneEndpoint {
     @PostMapping(path = "pause", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity pause() {
 
-        boolean pause = jobService.pause();
-        if (pause) {
-            return ResponseEntity.ok(new ControlPlaneResponse("PAUSED", ""));
-        }
-        else {
-            return ResponseEntity.ok(new ControlPlaneResponse("ERROR", ""));
-        }
+        criticalSectionService.submitProcedureForCriticalExecution(i -> {
+            boolean pause = jobService.pause();
+            BroadcastMessage<String> pauseBroadcastMessage = new BroadcastMessage<>(Configuration.id, UUID.randomUUID().toString());
+            routingService.broadcastMessage(pauseBroadcastMessage, Network.QUEENS_PAUSE);
+            if (pause) {
+                logger.info("All jobs paused.");
+            }
+            else {
+                logger.info("Failed to pause jobs.");
+            }
+        });
+        return ResponseEntity.ok(new ControlPlaneResponse("OK", ""));
     }
 
     @PostMapping(path = "stop", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
