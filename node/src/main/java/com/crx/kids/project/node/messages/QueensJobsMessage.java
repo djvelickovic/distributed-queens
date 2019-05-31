@@ -1,6 +1,6 @@
 package com.crx.kids.project.node.messages;
 
-import com.crx.kids.project.node.logic.QueensJob;
+import com.crx.kids.project.node.entities.QueensJob;
 
 import java.util.List;
 
