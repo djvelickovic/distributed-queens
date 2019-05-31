@@ -8,6 +8,7 @@ import com.crx.kids.project.node.messages.JobState;
 import com.crx.kids.project.node.messages.StatusMessage;
 import com.crx.kids.project.node.messages.StatusRequestMessage;
 import com.crx.kids.project.node.common.Network;
+import com.fasterxml.jackson.core.util.InternCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +24,7 @@ public class JobService {
 
     public static final Map<String, Map<Integer, List<JobState>>> jobStatesByRequestId = new ConcurrentHashMap<>();
 
-    public static final Map<Integer, Map<Integer, Integer[]>> collectedResultsByNodes = new ConcurrentHashMap<>();
+    public static final Map<Integer, Map<Integer, List<Integer[]>>> collectedResultsByDimensions = new ConcurrentHashMap<>();
 
 
     @Autowired
@@ -40,14 +41,29 @@ public class JobService {
 
     public Result start(int dimension) {
 
+        collectedResultsByDimensions.putIfAbsent(dimension, new ConcurrentHashMap<>());
+
         queensService.calculateJobsByDimension(dimension);
         queensService.startWorkForDimension(dimension);
 
         return Result.of(null);
     }
 
-    public Result<QueensResult> result(int dimension) {
-        return Result.of(new QueensResult());
+    public void addResults(Integer dimension, List<QueensResult> queensResults) {
+
+        collectedResultsByDimensions.putIfAbsent(dimension, new ConcurrentHashMap<>());
+        Map<Integer, List<Integer[]>> results = collectedResultsByDimensions.get(dimension);
+
+        queensResults.forEach(qr -> {
+            results.put(qr.getQueensJob().getJobId(), qr.getResults());
+        });
+
+
+    }
+
+
+    public Optional<Integer[]> result(int dimension) {
+        return Optional.empty();
     }
 
 
@@ -55,6 +71,7 @@ public class JobService {
         QueensService.currentActiveDim = -1;
         return true;
     }
+
 
     public void putStatusMessage(StatusMessage statusMessage) {
 //        Map<Integer, List<JobState>> jobStatesByNode = new ConcurrentHashMap<>();

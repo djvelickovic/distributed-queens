@@ -25,16 +25,18 @@ public class QueensService {
 
     private static final Logger logger = LoggerFactory.getLogger(QueensService.class);
 
+    // move to job common class
     private static final Map<Integer, Queue<QueensJob>> jobsByDimensions = new ConcurrentHashMap<>();
-
     private static final Map<Integer, Queue<QueensResult>> collectedResultsByDimensions = new ConcurrentHashMap<>();
-
     private static final Set<Integer> finishedJobs = ConcurrentHashMap.newKeySet();
 
     public static volatile int currentActiveDim;
 
     @Autowired
     private RoutingService routingService;
+
+    @Autowired
+    private JobStealingService jobStealingService;
 
     public void addJobsForDimension(int dimension, List<QueensJob> jobs) {
         Queue<QueensJob> jobQueue = new ConcurrentLinkedQueue<>();
@@ -46,6 +48,7 @@ public class QueensService {
         jobQueue.addAll(jobs);
     }
 
+    // move to job
     public List<JobState> getJobsStates() {
         return  jobsByDimensions.entrySet().stream()
                 .map(e -> {
@@ -76,6 +79,7 @@ public class QueensService {
     }
 
     @Async
+    // move to job
     public void startWorkForDimension(int dimension) {
         Queue<QueensResult> resultsByDimension = new ConcurrentLinkedQueue<>();
 
@@ -126,13 +130,46 @@ public class QueensService {
             resultsByDimension.add(qr);
         });
 
+
+        while (true) {
+            Optional<List<QueensJob>> stolenJobs = jobStealingService.stealJobs(dimension);
+            if (!stolenJobs.isPresent()) {
+                break;
+            }
+            stolenJobs.get().forEach(job -> {
+                QueensResult qr = doQueensJob(job);
+                results.add(qr);
+            });
+        }
+
+        // TODO: Broadcast results
+
         logger.info("Finished work for dimension {}", dimension);
         finishedJobs.add(dimension);
         currentActiveDim = -1;
-
-        // TODO: steal jobs
-        // TODO: Broadcast results
     }
+
+
+    public List<QueensJob> pollHalfJobs(int dimension) {
+
+        Queue<QueensJob> jobQueue = jobsByDimensions.get(dimension);
+
+        if (jobQueue == null) {
+            logger.error("There are no jobs for dimension {}", dimension);
+            return new ArrayList<>();
+        }
+
+        List<QueensJob> queensJobs = new ArrayList<>();
+
+        while (queensJobs.size() < jobQueue.size()) {
+            queensJobs.add(jobQueue.poll());
+        }
+
+        logger.info("Polled {} jobs for dimension {}. Remained {}", queensJobs.size(), dimension, jobQueue.size());
+
+        return queensJobs;
+    }
+
 
     private List<QueensJob> pollJobs(int dimension, int maxJobs) {
         if (maxJobs <= 0) {
@@ -148,17 +185,15 @@ public class QueensService {
 
         List<QueensJob> queensJobs = new ArrayList<>();
 
-        int i;
-        for (i = 0; i < maxJobs; i++) {
+        for (int i = 0; i < maxJobs; i++) {
             QueensJob queensJob = jobQueue.poll();
             if (queensJob == null) {
-
                 break;
             }
             queensJobs.add(queensJob);
         }
 
-        logger.info("Polled {} jobs for dimension {}. Remained {}", i, dimension, jobQueue.size());
+        logger.info("Polled {} jobs for dimension {}. Remained {}", queensJobs.size(), dimension, jobQueue.size());
 
         return queensJobs;
     }

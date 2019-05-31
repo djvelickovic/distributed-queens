@@ -17,6 +17,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -96,13 +97,8 @@ public class ControlEndpoint {
             return ResponseEntity.status(400).body(new ControlPlaneResponse("MISSING_PARAMETERS",""));
         }
 
-        Result<QueensResult> queensResultResult = jobService.result(dimensionsDTO.getDimension());
+        Optional<Integer[]> queensResultResult = jobService.result(dimensionsDTO.getDimension());
 
-        if (!queensResultResult.isError()) {
-            return ResponseEntity.ok(new ControlPlaneResponse("STARTED", "Started job for queens d = "+dimensionsDTO.getDimension()));
-        }
-        else {
-            return ResponseEntity.ok(new ControlPlaneResponse("ERROR", "Job has been already started for queens d = "+dimensionsDTO.getDimension()));
-        }
+        return ResponseEntity.ok(new ControlPlaneResponse("ERROR", "Job has been already started for queens d = "+dimensionsDTO.getDimension()));
     }
 }

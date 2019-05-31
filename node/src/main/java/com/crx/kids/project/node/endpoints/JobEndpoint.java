@@ -33,6 +33,9 @@ public class JobEndpoint {
     @Autowired
     private JobService jobService;
 
+    @Autowired
+    private JobStealingService jobStealingService;
+
 
     @PostMapping(path = "queens", consumes = MediaType.APPLICATION_JSON_UTF8_VALUE, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResponse> queens(@RequestBody QueensJobsMessage queensJobsMessage) {
@@ -83,6 +86,32 @@ public class JobEndpoint {
         }
 
         jobService.putStatusMessage(statusMessage);
+
+        return ResponseEntity.ok().body(new CommonResponse(CommonType.OK));
+    }
+
+    @PostMapping(path = "stealing-request", consumes = MediaType.APPLICATION_JSON_UTF8_VALUE, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    public ResponseEntity<CommonResponse> stealingRequest(@RequestBody JobStealingMessage stealingMessage) {
+
+        if (stealingMessage.getReceiver() != Configuration.id) {
+            routingService.dispatchMessage(stealingMessage, Methods.JOB_STEALING_REQUEST);
+            return ResponseEntity.ok(new CommonResponse(CommonType.OK));
+        }
+
+        jobStealingService.sendStolenJobs(stealingMessage.getSender(), stealingMessage.getDimension());
+
+        return ResponseEntity.ok().body(new CommonResponse(CommonType.OK));
+    }
+
+    @PostMapping(path = "stealing-collector", consumes = MediaType.APPLICATION_JSON_UTF8_VALUE, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    public ResponseEntity<CommonResponse> stealingCollector(@RequestBody StolenJobsMessage stolenJobsMessage) {
+
+        if (stolenJobsMessage.getReceiver() != Configuration.id) {
+            routingService.dispatchMessage(stolenJobsMessage, Methods.JOB_STEALING_COLLECTOR);
+            return ResponseEntity.ok(new CommonResponse(CommonType.OK));
+        }
+
+        jobStealingService.addStolenJobs(stolenJobsMessage.getSender(), stolenJobsMessage.getDimension(), stolenJobsMessage.getStolenJobs());
 
         return ResponseEntity.ok().body(new CommonResponse(CommonType.OK));
     }

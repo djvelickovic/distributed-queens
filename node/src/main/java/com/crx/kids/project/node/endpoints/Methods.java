@@ -27,4 +27,8 @@ public class Methods {
     public static final String QUEENS_PAUSE = "job/queens-pause";
     public static final String QUEENS_STATUS = "job/queens-status";
     public static final String QUEENS_STATUS_COLLECTOR = "job/queens-status-collector";
+
+    public static final String JOB_STEALING_REQUEST = "job/stealing-request";
+    public static final String JOB_STEALING_COLLECTOR = "job/stealing-collector";
+
 }
