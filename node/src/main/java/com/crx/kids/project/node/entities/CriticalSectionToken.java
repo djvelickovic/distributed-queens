@@ -1,4 +1,4 @@
-package com.crx.kids.project.node.cs;
+package com.crx.kids.project.node.entities;
 
 import java.util.HashMap;
 import java.util.LinkedList;

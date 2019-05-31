@@ -1,19 +1,18 @@
-package com.crx.kids.project.node.net;
+package com.crx.kids.project.node.services;
 
 import com.crx.kids.project.common.CheckInResponse;
 import com.crx.kids.project.common.util.Result;
-import com.crx.kids.project.node.Configuration;
-import com.crx.kids.project.node.bootstrap.BootstrapService;
-import com.crx.kids.project.node.comm.NodeGateway;
-import com.crx.kids.project.node.cs.CriticalSection;
-import com.crx.kids.project.node.cs.CriticalSectionToken;
+import com.crx.kids.project.node.common.Configuration;
+import com.crx.kids.project.node.common.CriticalSection;
+import com.crx.kids.project.node.entities.CriticalSectionToken;
 import com.crx.kids.project.node.messages.AlterRoutingTableMessage;
 import com.crx.kids.project.node.messages.FullNodeInfo;
-import com.crx.kids.project.node.messages.SuzukiKasamiTokenMessage;
 import com.crx.kids.project.node.messages.newbie.NewbieAcceptedMessage;
 import com.crx.kids.project.node.messages.newbie.NewbieJoinMessage;
 import com.crx.kids.project.node.messages.response.CommonResponse;
-import com.crx.kids.project.node.routing.RoutingUtils;
+import com.crx.kids.project.node.utils.NetUtil;
+import com.crx.kids.project.node.common.Network;
+import com.crx.kids.project.node.utils.RoutingUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,4 +1,4 @@
-package com.crx.kids.project.node;
+package com.crx.kids.project.node.common;
 
 import com.crx.kids.project.common.NodeInfo;
 

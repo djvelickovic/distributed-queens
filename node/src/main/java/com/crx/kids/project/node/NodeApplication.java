@@ -1,6 +1,7 @@
 package com.crx.kids.project.node;
 
 import com.crx.kids.project.common.NodeInfo;
+import com.crx.kids.project.node.common.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;

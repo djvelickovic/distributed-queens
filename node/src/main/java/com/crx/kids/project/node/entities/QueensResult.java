@@ -1,4 +1,4 @@
-package com.crx.kids.project.node.logic;
+package com.crx.kids.project.node.entities;
 
 import java.util.List;
 

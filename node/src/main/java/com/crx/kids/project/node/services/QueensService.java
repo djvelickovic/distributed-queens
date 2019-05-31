@@ -1,11 +1,12 @@
-package com.crx.kids.project.node.logic;
+package com.crx.kids.project.node.services;
 
 import com.crx.kids.project.common.util.Result;
-import com.crx.kids.project.node.Configuration;
+import com.crx.kids.project.node.common.Configuration;
+import com.crx.kids.project.node.entities.QueensJob;
+import com.crx.kids.project.node.entities.QueensResult;
 import com.crx.kids.project.node.messages.JobState;
 import com.crx.kids.project.node.messages.QueensJobsMessage;
-import com.crx.kids.project.node.net.Network;
-import com.crx.kids.project.node.routing.RoutingService;
+import com.crx.kids.project.node.common.Network;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,11 +1,6 @@
 package com.crx.kids.project.node.messages;
 
-import com.crx.kids.project.node.cs.CriticalSectionToken;
-
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Queue;
+import com.crx.kids.project.node.entities.CriticalSectionToken;
 
 public class SuzukiKasamiTokenMessage extends Message {
 

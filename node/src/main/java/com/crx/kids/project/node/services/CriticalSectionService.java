@@ -1,21 +1,18 @@
-package com.crx.kids.project.node.cs;
+package com.crx.kids.project.node.services;
 
-import com.crx.kids.project.node.Configuration;
-import com.crx.kids.project.node.comm.NodeGateway;
+import com.crx.kids.project.node.common.Configuration;
+import com.crx.kids.project.node.common.CriticalSection;
+import com.crx.kids.project.node.entities.CriticalSectionToken;
 import com.crx.kids.project.node.messages.BroadcastMessage;
 import com.crx.kids.project.node.messages.SuzukiKasamiTokenMessage;
-import com.crx.kids.project.node.net.Network;
-import com.crx.kids.project.node.net.NetworkService;
-import com.crx.kids.project.node.routing.RoutingService;
+import com.crx.kids.project.node.common.Network;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
 import java.util.stream.IntStream;

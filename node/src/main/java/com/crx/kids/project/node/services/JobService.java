@@ -1,14 +1,12 @@
-package com.crx.kids.project.node.api;
+package com.crx.kids.project.node.services;
 
 import com.crx.kids.project.common.util.Result;
-import com.crx.kids.project.node.Configuration;
-import com.crx.kids.project.node.logic.QueensResult;
-import com.crx.kids.project.node.logic.QueensService;
+import com.crx.kids.project.node.common.Configuration;
+import com.crx.kids.project.node.entities.QueensResult;
 import com.crx.kids.project.node.messages.JobState;
 import com.crx.kids.project.node.messages.StatusMessage;
 import com.crx.kids.project.node.messages.StatusRequestMessage;
-import com.crx.kids.project.node.net.Network;
-import com.crx.kids.project.node.routing.RoutingService;
+import com.crx.kids.project.node.common.Network;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +21,9 @@ public class JobService {
     private static final Logger logger = LoggerFactory.getLogger(JobService.class);
 
     public static final Map<String, Map<Integer, List<JobState>>> jobStatesByRequestId = new ConcurrentHashMap<>();
+
+    public static final Map<Integer, Map<Integer, Integer[]>> collectedResultsByNodes = new ConcurrentHashMap<>();
+
 
     @Autowired
     private RoutingService routingService;

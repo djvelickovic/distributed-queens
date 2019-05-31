@@ -1,16 +1,18 @@
-package com.crx.kids.project.node.net;
+package com.crx.kids.project.node.endpoints;
 
-import com.crx.kids.project.node.Configuration;
-import com.crx.kids.project.node.api.JobService;
-import com.crx.kids.project.node.cs.CriticalSection;
-import com.crx.kids.project.node.cs.CriticalSectionService;
-import com.crx.kids.project.node.logic.QueensService;
+import com.crx.kids.project.node.common.Configuration;
+import com.crx.kids.project.node.services.JobService;
+import com.crx.kids.project.node.services.CriticalSectionService;
+import com.crx.kids.project.node.services.QueensService;
 import com.crx.kids.project.node.messages.*;
 import com.crx.kids.project.node.messages.newbie.NewbieAcceptedMessage;
 import com.crx.kids.project.node.messages.newbie.NewbieJoinMessage;
 import com.crx.kids.project.node.messages.response.CommonResponse;
 import com.crx.kids.project.node.messages.response.CommonType;
-import com.crx.kids.project.node.routing.RoutingService;
+import com.crx.kids.project.node.common.Network;
+import com.crx.kids.project.node.services.NetworkService;
+import com.crx.kids.project.node.endpoints.dto.StatusResponse;
+import com.crx.kids.project.node.services.RoutingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +21,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping(path = "net")

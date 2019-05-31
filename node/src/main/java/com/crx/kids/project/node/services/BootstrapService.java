@@ -1,4 +1,4 @@
-package com.crx.kids.project.node.bootstrap;
+package com.crx.kids.project.node.services;
 
 import com.crx.kids.project.common.CheckInResponse;
 import com.crx.kids.project.common.NodeInfo;

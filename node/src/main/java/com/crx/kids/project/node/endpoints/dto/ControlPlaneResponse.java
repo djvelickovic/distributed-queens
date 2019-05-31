@@ -1,4 +1,4 @@
-package com.crx.kids.project.node.api;
+package com.crx.kids.project.node.endpoints.dto;
 
 public class ControlPlaneResponse {
 

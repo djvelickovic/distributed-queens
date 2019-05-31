@@ -1,4 +1,4 @@
-package com.crx.kids.project.node.net;
+package com.crx.kids.project.node.utils;
 
 import com.crx.kids.project.common.NodeInfo;
 

@@ -1,15 +1,15 @@
-package com.crx.kids.project.node.routing;
+package com.crx.kids.project.node.services;
 
 import com.crx.kids.project.common.NodeInfo;
 import com.crx.kids.project.common.util.Result;
-import com.crx.kids.project.node.Configuration;
-import com.crx.kids.project.node.ThreadUtil;
-import com.crx.kids.project.node.comm.NodeGateway;
+import com.crx.kids.project.node.common.Configuration;
+import com.crx.kids.project.node.utils.ThreadUtil;
 import com.crx.kids.project.node.messages.BroadcastMessage;
 import com.crx.kids.project.node.messages.FullNodeInfo;
 import com.crx.kids.project.node.messages.Message;
 import com.crx.kids.project.node.messages.Trace;
-import com.crx.kids.project.node.net.Network;
+import com.crx.kids.project.node.common.Network;
+import com.crx.kids.project.node.utils.RoutingUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,6 +1,6 @@
-package com.crx.kids.project.node.cs;
+package com.crx.kids.project.node.common;
 
-import com.crx.kids.project.node.messages.SuzukiKasamiTokenMessage;
+import com.crx.kids.project.node.entities.CriticalSectionToken;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

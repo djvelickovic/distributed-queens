@@ -1,4 +1,4 @@
-package com.crx.kids.project.node.comm;
+package com.crx.kids.project.node.services;
 
 import com.crx.kids.project.common.NodeInfo;
 import com.crx.kids.project.common.util.Error;
@@ -7,7 +7,7 @@ import com.crx.kids.project.common.util.Result;
 import com.crx.kids.project.node.messages.Message;
 import com.crx.kids.project.node.messages.response.CommonResponse;
 import com.crx.kids.project.node.messages.response.CommonType;
-import com.crx.kids.project.node.net.NetUtil;
+import com.crx.kids.project.node.utils.NetUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
