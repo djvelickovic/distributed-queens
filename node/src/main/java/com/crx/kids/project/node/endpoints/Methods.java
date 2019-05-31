@@ -30,5 +30,7 @@ public class Methods {
 
     public static final String JOB_STEALING_REQUEST = "job/stealing-request";
     public static final String JOB_STEALING_COLLECTOR = "job/stealing-collector";
+    public static final String QUEENS_RESULT_BROADCAST = "job/queens-result-broadcast";
+
 
 }

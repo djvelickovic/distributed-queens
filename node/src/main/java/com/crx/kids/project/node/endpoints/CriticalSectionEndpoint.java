@@ -33,8 +33,9 @@ public class CriticalSectionEndpoint {
     @PostMapping(path = "broadcast", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResponse> broadcast(@RequestBody BroadcastMessage<Integer> criticalSectionBroadcast) {
 
-        routingService.broadcastMessage(criticalSectionBroadcast, Methods.BROADCAST_CRITICAL_SECTION);
-        criticalSectionService.handleSuzukiKasamiBroadcastMessage(criticalSectionBroadcast);
+        if (routingService.broadcastMessage(criticalSectionBroadcast, Methods.BROADCAST_CRITICAL_SECTION)) {
+            criticalSectionService.handleSuzukiKasamiBroadcastMessage(criticalSectionBroadcast);
+        }
 
         return ResponseEntity.ok(new CommonResponse(CommonType.OK));
     }

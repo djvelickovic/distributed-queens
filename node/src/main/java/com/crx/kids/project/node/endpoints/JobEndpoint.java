@@ -54,8 +54,9 @@ public class JobEndpoint {
     @PostMapping(path = "queens-pause", consumes = MediaType.APPLICATION_JSON_UTF8_VALUE, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResponse> queens(@RequestBody BroadcastMessage<String> pauseMessage) {
 
-        routingService.broadcastMessage(pauseMessage, Methods.QUEENS_PAUSE);
-        Jobs.currentActiveDim = -1;
+        if (routingService.broadcastMessage(pauseMessage, Methods.QUEENS_PAUSE)) {
+            Jobs.currentActiveDim.set(-1);
+        }
 
         return ResponseEntity.ok().body(new CommonResponse(CommonType.OK));
     }
@@ -117,4 +118,15 @@ public class JobEndpoint {
         return ResponseEntity.ok().body(new CommonResponse(CommonType.OK));
     }
 
+    @PostMapping(path = "queens-result-broadcast", consumes = MediaType.APPLICATION_JSON_UTF8_VALUE, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    public ResponseEntity<CommonResponse> queensResultBroadcast(@RequestBody QueensResultBroadcast queensResultBroadcast) {
+
+        if (routingService.broadcastMessage(queensResultBroadcast, Methods.QUEENS_RESULT_BROADCAST)) {
+
+            logger.info("Collected results from {}, for dimension {}. Result count: {}", queensResultBroadcast.getSender(), queensResultBroadcast.getDimension(), queensResultBroadcast.getQueensResults().size());
+            jobService.addResults(queensResultBroadcast.getDimension(), queensResultBroadcast.getQueensResults());
+        }
+
+        return ResponseEntity.ok().body(new CommonResponse(CommonType.OK));
+    }
 }

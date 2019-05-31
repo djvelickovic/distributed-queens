@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Jobs {
 
@@ -15,6 +16,6 @@ public class Jobs {
     public static final Map<Integer, Queue<QueensResult>> collectedResultsByDimensions = new ConcurrentHashMap<>();
     public static final Set<Integer> finishedJobs = ConcurrentHashMap.newKeySet();
 
-    public static volatile int currentActiveDim;
+    public static final AtomicInteger currentActiveDim = new AtomicInteger(-1);
 
 }

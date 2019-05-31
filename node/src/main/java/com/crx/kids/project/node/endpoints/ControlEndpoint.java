@@ -42,15 +42,7 @@ public class ControlEndpoint {
         }
 
         criticalSectionService.submitProcedureForCriticalExecution(i -> {
-            Result result = jobService.start(dimensionsDTO.getDimension());
-
-            if (!result.isError()) {
-                logger.info("Started job for queens d = {}.", dimensionsDTO.getDimension());
-//                routingService.broadcastMessage(null, null);
-            }
-            else {
-                logger.warn("Job has been already started for queens  d = {}, Error {}", dimensionsDTO.getDimension(), result.getError());
-            }
+            jobService.start(dimensionsDTO.getDimension());
         });
 
         return ResponseEntity.ok(new ControlPlaneResponse("OK", ""));

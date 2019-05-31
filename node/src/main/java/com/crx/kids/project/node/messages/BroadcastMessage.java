@@ -26,7 +26,7 @@ public class BroadcastMessage<T> extends Message {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         BroadcastMessage that = (BroadcastMessage) o;
-        return id == that.id && sender == that.sender;
+        return id.equals(that.id) && sender == that.sender;
     }
 
     @Override

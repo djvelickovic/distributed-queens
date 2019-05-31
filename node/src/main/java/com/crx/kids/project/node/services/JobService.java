@@ -7,6 +7,7 @@ import com.crx.kids.project.node.endpoints.Methods;
 import com.crx.kids.project.node.entities.QueensJob;
 import com.crx.kids.project.node.entities.QueensResult;
 import com.crx.kids.project.node.messages.JobState;
+import com.crx.kids.project.node.messages.QueensResultBroadcast;
 import com.crx.kids.project.node.messages.StatusMessage;
 import com.crx.kids.project.node.messages.StatusRequestMessage;
 import com.crx.kids.project.node.common.Network;
@@ -50,15 +51,14 @@ public class JobService {
         return false;
     }
 
-
-    public Result start(int dimension) {
+    @Async
+    public void start(int dimension) {
 
         collectedResultsByDimensions.putIfAbsent(dimension, new ConcurrentHashMap<>());
 
         queensService.calculateJobsByDimension(dimension);
         startWorkForDimension(dimension);
 
-        return Result.of(null);
     }
 
 
@@ -68,7 +68,7 @@ public class JobService {
                     Queue<QueensResult> resultQueue = Jobs.collectedResultsByDimensions.get(e.getKey());
                     if (resultQueue != null) {
                         String status;
-                        if (e.getKey() == Jobs.currentActiveDim){
+                        if (e.getKey() == Jobs.currentActiveDim.get()){
                             status = "active";
                         }
                         else if (e.getValue().size() == 0 && resultQueue.size() > 0){
@@ -104,12 +104,12 @@ public class JobService {
             }
             else {
                 logger.info("Resuming for dimension has been already started: {}", dimension);
-                Jobs.currentActiveDim = dimension;
+                Jobs.currentActiveDim.set(dimension);
             }
             return;
         }
 
-        Jobs.currentActiveDim = dimension;
+        Jobs.currentActiveDim.set(dimension);
         logger.info("Starting work for dimension {}", dimension);
 
         Queue<QueensJob> jobs = Jobs.jobsByDimensions.get(dimension);
@@ -118,7 +118,7 @@ public class JobService {
 
         while (!jobs.isEmpty()) {
 
-            if (Jobs.currentActiveDim != dimension) {
+            if (Jobs.currentActiveDim.get() != dimension) {
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
@@ -132,12 +132,11 @@ public class JobService {
             QueensResult qr = queensService.doQueensJob(job);
             results.add(qr);
 
-            ThreadUtil.sleep(100);
-            logger.info("Job {} finished", job.getJobId());
+            ThreadUtil.sleep(20);
+            logger.info("Dim {}. Job {}. Finished. Current Dim: {}",dimension, job.getJobId(), Jobs.currentActiveDim.get());
         }
 
 
-        logger.info("Printing");
         results.forEach(qr -> {
             if (qr.getResults() != null) {
                 logger.debug("---- "+qr.getQueensJob().getJobId());
@@ -145,29 +144,43 @@ public class JobService {
             }
         });
 
-        logger.info("Finished printing.");
-
 
         while (true) {
-            logger.info("Loop for job stealing!");
-            Optional<List<QueensJob>> stolenJobs = jobStealingService.stealJobs(dimension);
-            if (!stolenJobs.isPresent()) {
+            Optional<Queue<QueensJob>> stolenJobsOptional = jobStealingService.stealJobs(dimension);
+            if (!stolenJobsOptional.isPresent()) {
                 break;
             }
-            logger.info("Stolen jobs!");
 
-            stolenJobs.get().forEach(job -> {
+            Queue<QueensJob> stolenJobs = stolenJobsOptional.get();
+
+            while (!stolenJobs.isEmpty()) {
+
+                if (Jobs.currentActiveDim.get() != dimension) {
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    logger.info("Waiting calculations for dimension {}", dimension);
+                    continue;
+                }
+
+                QueensJob job = stolenJobs.poll();
                 QueensResult qr = queensService.doQueensJob(job);
                 results.add(qr);
-                ThreadUtil.sleep(100);
-            });
+                ThreadUtil.sleep(20);
+                logger.info("Dim {}. Stolen Job {}. Finished",dimension, job.getJobId());
+            }
         }
-
-        // TODO: Broadcast results
 
         logger.info("Finished work for dimension {}", dimension);
         Jobs.finishedJobs.add(dimension);
-        Jobs.currentActiveDim = -1;
+        Jobs.currentActiveDim.set(-1);
+
+        QueensResultBroadcast queensResultBroadcast = new QueensResultBroadcast(Configuration.id, dimension, new ArrayList<>(results));
+        logger.info("Broadcasting results for dimension {}. Result count = {}", dimension, results.size());
+        routingService.broadcastMessage(queensResultBroadcast, Methods.QUEENS_RESULT_BROADCAST);
+
     }
 
 
@@ -175,7 +188,6 @@ public class JobService {
 
 
     public void addResults(Integer dimension, List<QueensResult> queensResults) {
-
         collectedResultsByDimensions.putIfAbsent(dimension, new ConcurrentHashMap<>());
         Map<Integer, List<Integer[]>> results = collectedResultsByDimensions.get(dimension);
 
@@ -191,7 +203,9 @@ public class JobService {
 
 
     public boolean pause() {
-        Jobs.currentActiveDim = -1;
+        logger.info("Paused all job!");
+        Jobs.currentActiveDim.set(-1);
+        //
         return true;
     }
 

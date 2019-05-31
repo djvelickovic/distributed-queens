@@ -137,7 +137,7 @@ public class CriticalSectionService {
             int rn = CriticalSection.suzukiKasamiCounterByNodes.getOrDefault(i, 0);
             int ln = token.getSuzukiKasamiNodeMap().getOrDefault(i, 0);
 
-            logger.info("TOKEN: {}.  rn = {}, ln = {}", i, rn, ln);
+            logger.debug("TOKEN: {}.  rn = {}, ln = {}", i, rn, ln);
 
 //            if (rn == ln + 1) { // rn > ln
             if (rn > ln) {

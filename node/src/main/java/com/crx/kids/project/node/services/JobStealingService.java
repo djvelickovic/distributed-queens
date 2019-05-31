@@ -33,7 +33,7 @@ public class JobStealingService {
     private QueensService queensService;
 
     public void addStolenJobs(int from, int dimension, List<QueensJob> stolenJobs) {
-        logger.info("Collected jobs from {}, for dim {}. Jobs {}", from, dimension, stolenJobs.toString());
+        logger.info("Collected Stolen Jobs from {}, for dim {}. Jobs {}", from, dimension, stolenJobs.toString());
         askedNodesByDimension.get(dimension).add(from);
         stolenJobsByDimension.get(dimension).addAll(stolenJobs);
     }
@@ -57,7 +57,7 @@ public class JobStealingService {
         }
     }
 
-    public Optional<List<QueensJob>> stealJobs(int dimension) {
+    public Optional<Queue<QueensJob>> stealJobs(int dimension) {
         askedNodesByDimension.putIfAbsent(dimension, ConcurrentHashMap.newKeySet());
         stolenJobsByDimension.putIfAbsent(dimension, new ConcurrentLinkedQueue<>());
 //        asnweredNodesByDimension.putIfAbsent(dimension, ConcurrentHashMap.newKeySet());
@@ -87,12 +87,12 @@ public class JobStealingService {
         }
 
         Queue<QueensJob> stolenJobsQueue = stolenJobsByDimension.get(dimension);
-        List<QueensJob> stolenJobs = new ArrayList<>();
-
-        while (!stolenJobsQueue.isEmpty()) {
-            stolenJobs.add(stolenJobsQueue.poll());
-        }
-        return Optional.of(stolenJobs);
+//        List<QueensJob> stolenJobs = new ArrayList<>();
+//
+//        while (!stolenJobsQueue.isEmpty()) {
+//            stolenJobs.add(stolenJobsQueue.poll());
+//        }
+        return Optional.of(stolenJobsQueue);
     }
 
     @Async

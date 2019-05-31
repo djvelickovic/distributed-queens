@@ -18,6 +18,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -26,7 +28,7 @@ public class RoutingService {
 
     private static final Logger logger = LoggerFactory.getLogger(RoutingService.class);
     private static final Set<BroadcastMessage> broadcastMessages = ConcurrentHashMap.newKeySet();
-
+    private static final ExecutorService executor = Executors.newCachedThreadPool();
 
     @Autowired
     private NodeGateway nodeGateway;
@@ -52,7 +54,7 @@ public class RoutingService {
 
         // first find from neighbours
         if (nextHop != null) {
-            logger.info("Next hop determined directly by routing table: {}", nextHop);
+            logger.debug("Next hop determined directly by routing table: {}", nextHop);
             return Optional.of(new FullNodeInfo(receiver, nextHop));
         }
 
@@ -69,7 +71,7 @@ public class RoutingService {
             for (int i = receiverChain.size() - 1; i > maxCommonNumberPosition ; i--) { // >= or >
                 nextHop = neighbours.get().getOrDefault(receiverChain.get(i), null);
                 if (nextHop != null) {
-                    logger.info("Next hop determined by algorithm: {}", nextHop);
+                    logger.debug("Next hop determined by algorithm: {}", nextHop);
                     return Optional.of(new FullNodeInfo(receiverChain.get(i), nextHop));
                 }
             }
@@ -78,7 +80,7 @@ public class RoutingService {
             for (int i = maxCommonNumberPosition; i < senderChain.size(); i++) { // exclude myself?
                 nextHop = neighbours.get().getOrDefault(senderChain.get(i), null);
                 if (nextHop != null) {
-                    logger.info("Next hop determined by algorithm: {}", nextHop);
+                    logger.debug("Next hop determined by algorithm: {}", nextHop);
                     return Optional.of(new FullNodeInfo(senderChain.get(i), nextHop));
                 }
             }
@@ -105,37 +107,41 @@ public class RoutingService {
         broadcastMessage(new BroadcastMessage<>(Configuration.id, UUID.randomUUID().toString()), path);
     }
 
-    @Async
-    public void broadcastMessage(BroadcastMessage message, String path) {
+
+    public boolean broadcastMessage(BroadcastMessage message, String path) {
         if (!broadcastMessages.add(message)) {
-            return;
+            return false;
         }
 
-        try {
-            logger.info("Broadcasting message {}. Action: {}", message, path);
+        executor.submit(() -> {
 
-            message.addTrace(new Trace(Configuration.id, "Broadcast."));
+            try {
+                logger.info("Broadcasting message {}. Action: {}", message, path);
 
-            List<Result> broadcastResults = Network.neighbours.entrySet().stream()
-                    .filter(e -> !containTraceFor(e.getKey(), message))
-                    .map(Map.Entry::getValue)
-                    .map(nodeInfo -> nodeGateway.send(message, nodeInfo, path))
-                    .collect(Collectors.toList());
+                message.addTrace(new Trace(Configuration.id, "Broadcast."));
 
-            broadcastResults.stream()
-                    .filter(Result::isError)
-                    .map(Result::getError)
-                    .forEach(e -> logger.error("Error broadcasting message. Error: {}", e));
+                List<Result> broadcastResults = Network.neighbours.entrySet().stream()
+                        .filter(e -> !containTraceFor(e.getKey(), message))
+                        .map(Map.Entry::getValue)
+                        .map(nodeInfo -> nodeGateway.send(message, nodeInfo, path))
+                        .collect(Collectors.toList());
 
-            broadcastResults.stream()
-                    .filter(r -> !r.isError())
-                    .map(Result::getError)
-                    .forEach(e -> logger.debug("Message successfully broadcast."));
+                broadcastResults.stream()
+                        .filter(Result::isError)
+                        .map(Result::getError)
+                        .forEach(e -> logger.error("Error broadcasting message. Error: {}", e));
 
-        }
-        catch (Exception e) {
-            logger.error("Error while broadcasting message", e);
-        }
+                broadcastResults.stream()
+                        .filter(r -> !r.isError())
+                        .map(Result::getError)
+                        .forEach(e -> logger.debug("Message successfully broadcast."));
+
+            } catch (Exception e) {
+                logger.error("Error while broadcasting message", e);
+            }
+        });
+
+        return true;
     }
 
     @Async

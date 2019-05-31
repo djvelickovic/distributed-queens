@@ -74,35 +74,32 @@ public class NodeEndpoint {
 
     @PostMapping(path = "join-broadcast", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResponse> joinBroadcast(@RequestBody BroadcastMessage<String> discoveryBroadcastMessage) {
-        routingService.broadcastMessage(discoveryBroadcastMessage, Methods.BROADCAST_JOIN);
-
-        try {
-            Network.maxNodeLock.writeLock().lock();
-            if (discoveryBroadcastMessage.getSender() > Network.maxNodeInSystem) {
-                logger.info("Discovered greater node in system. Replacing: {} with {}", Network.maxNodeInSystem, discoveryBroadcastMessage.getSender());
-                Network.maxNodeInSystem = discoveryBroadcastMessage.getSender();
+        if (routingService.broadcastMessage(discoveryBroadcastMessage, Methods.BROADCAST_JOIN)) {
+            try {
+                Network.maxNodeLock.writeLock().lock();
+                if (discoveryBroadcastMessage.getSender() > Network.maxNodeInSystem) {
+                    logger.info("Discovered greater node in system. Replacing: {} with {}", Network.maxNodeInSystem, discoveryBroadcastMessage.getSender());
+                    Network.maxNodeInSystem = discoveryBroadcastMessage.getSender();
+                }
+            } finally {
+                Network.maxNodeLock.writeLock().unlock();
             }
         }
-        finally {
-            Network.maxNodeLock.writeLock().unlock();
-        }
-
         return ResponseEntity.ok(new CommonResponse(CommonType.OK));
     }
 
     @PostMapping(path = "leave-broadcast", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResponse> leaveBroadcast(@RequestBody BroadcastMessage<String> discoveryBroadcastMessage) {
-        routingService.broadcastMessage(discoveryBroadcastMessage, Methods.BROADCAST_LEAVE);
-
-        try {
-            Network.maxNodeLock.writeLock().lock();
-            if (discoveryBroadcastMessage.getSender() == Network.maxNodeInSystem) {
-                logger.info("Max node in system left.");
-                Network.maxNodeInSystem = Network.maxNodeInSystem - 1;
+        if (routingService.broadcastMessage(discoveryBroadcastMessage, Methods.BROADCAST_LEAVE)) {
+            try {
+                Network.maxNodeLock.writeLock().lock();
+                if (discoveryBroadcastMessage.getSender() == Network.maxNodeInSystem) {
+                    logger.info("Max node in system left.");
+                    Network.maxNodeInSystem = Network.maxNodeInSystem - 1;
+                }
+            } finally {
+                Network.maxNodeLock.writeLock().unlock();
             }
-        }
-        finally {
-            Network.maxNodeLock.writeLock().unlock();
         }
 
         return ResponseEntity.ok(new CommonResponse(CommonType.OK));
