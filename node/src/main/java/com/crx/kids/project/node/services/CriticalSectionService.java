@@ -2,6 +2,7 @@ package com.crx.kids.project.node.services;
 
 import com.crx.kids.project.node.common.Configuration;
 import com.crx.kids.project.node.common.CriticalSection;
+import com.crx.kids.project.node.endpoints.Methods;
 import com.crx.kids.project.node.entities.CriticalSectionToken;
 import com.crx.kids.project.node.messages.BroadcastMessage;
 import com.crx.kids.project.node.messages.SuzukiKasamiTokenMessage;
@@ -48,7 +49,7 @@ public class CriticalSectionService {
     @Async
     public void submitProcedureForCriticalExecution(Consumer<CriticalSectionToken> criticalSectionProcedure) {
         //TODO: check if node already have token an it is idle
-        int suzukiKasamiBroadcastId = initiateSuzukiKasamiBroadcast(Network.BROADCAST_CRITICAL_SECTION);
+        int suzukiKasamiBroadcastId = initiateSuzukiKasamiBroadcast(Methods.BROADCAST_CRITICAL_SECTION);
 //        criticalSectionProceduresMap.put(suzukiKasamiBroadcastId, criticalSectionProcedure);
         criticalSectionProcedures.add(criticalSectionProcedure);
         logger.info("Submitted critical section procedure for id {}", suzukiKasamiBroadcastId);
@@ -168,7 +169,7 @@ public class CriticalSectionService {
             else {
                 CriticalSection.token = null;
                 SuzukiKasamiTokenMessage suzukiKasamiTokenMessage = new SuzukiKasamiTokenMessage(Configuration.id, nextNode, token);
-                routingService.dispatchMessage(suzukiKasamiTokenMessage, Network.CRITICAL_SECTION_TOKEN);
+                routingService.dispatchMessage(suzukiKasamiTokenMessage, Methods.CRITICAL_SECTION_TOKEN);
             }
         }
     }

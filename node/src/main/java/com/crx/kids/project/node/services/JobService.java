@@ -2,6 +2,7 @@ package com.crx.kids.project.node.services;
 
 import com.crx.kids.project.common.util.Result;
 import com.crx.kids.project.node.common.Configuration;
+import com.crx.kids.project.node.endpoints.Methods;
 import com.crx.kids.project.node.entities.QueensResult;
 import com.crx.kids.project.node.messages.JobState;
 import com.crx.kids.project.node.messages.StatusMessage;
@@ -79,7 +80,7 @@ public class JobService {
         IntStream.rangeClosed(1, sentToNodes)
                 .filter(nodeId -> nodeId != Configuration.id)
                 .mapToObj(nodeId -> new StatusRequestMessage(Configuration.id, nodeId, statusRequestId))
-                .forEach(message -> routingService.dispatchMessage(message, Network.QUEENS_STATUS));
+                .forEach(message -> routingService.dispatchMessage(message, Methods.QUEENS_STATUS));
 
 
         while (true) {

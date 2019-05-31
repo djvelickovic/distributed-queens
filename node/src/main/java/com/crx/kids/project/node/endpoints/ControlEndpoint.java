@@ -21,9 +21,9 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping(path = "control")
-public class ControlPlaneEndpoint {
+public class ControlEndpoint {
 
-    private static final Logger logger = LoggerFactory.getLogger(ControlPlaneEndpoint.class);
+    private static final Logger logger = LoggerFactory.getLogger(ControlEndpoint.class);
 
     @Autowired
     private JobService jobService;
@@ -66,7 +66,7 @@ public class ControlPlaneEndpoint {
         criticalSectionService.submitProcedureForCriticalExecution(i -> {
             boolean pause = jobService.pause();
             BroadcastMessage<String> pauseBroadcastMessage = new BroadcastMessage<>(Configuration.id, UUID.randomUUID().toString());
-            routingService.broadcastMessage(pauseBroadcastMessage, Network.QUEENS_PAUSE);
+            routingService.broadcastMessage(pauseBroadcastMessage, Methods.QUEENS_PAUSE);
             if (pause) {
                 logger.info("All jobs paused.");
             }

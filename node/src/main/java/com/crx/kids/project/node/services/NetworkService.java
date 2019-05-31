@@ -4,6 +4,7 @@ import com.crx.kids.project.common.CheckInResponse;
 import com.crx.kids.project.common.util.Result;
 import com.crx.kids.project.node.common.Configuration;
 import com.crx.kids.project.node.common.CriticalSection;
+import com.crx.kids.project.node.endpoints.Methods;
 import com.crx.kids.project.node.entities.CriticalSectionToken;
 import com.crx.kids.project.node.messages.AlterRoutingTableMessage;
 import com.crx.kids.project.node.messages.FullNodeInfo;
@@ -56,7 +57,7 @@ public class NetworkService {
                 NewbieJoinMessage newbieJoinMessage = new NewbieJoinMessage(Configuration.id, receiver, Configuration.myself);
                 // instead of calculating next hop, next hop is firsKnownNode
 
-                Result joinResult = nodeGateway.send(newbieJoinMessage, Network.firstKnownNode, Network.NEWBIE_JOIN);
+                Result joinResult = nodeGateway.send(newbieJoinMessage, Network.firstKnownNode, Methods.NEWBIE_JOIN);
 
                 if (joinResult.isError()) {
                     logger.error("Received error response. Exiting.");
@@ -110,7 +111,7 @@ public class NetworkService {
         }
 
         RestTemplate restTemplate = new RestTemplate();
-        ResponseEntity<CommonResponse> response = restTemplate.postForEntity(NetUtil.url(newbieJoinMessage.getNewbie(), "node/net/newbie-accepted"), newbieAcceptedMessage, CommonResponse.class);
+        ResponseEntity<CommonResponse> response = restTemplate.postForEntity(NetUtil.url(newbieJoinMessage.getNewbie(), Methods.NEWBIE_ACCEPTED), newbieAcceptedMessage, CommonResponse.class);
         logger.info("Response {}", response);
     }
 
@@ -132,7 +133,7 @@ public class NetworkService {
 
         Network.neighbours.forEach( (receiver, nodeInfo) -> {
             AlterRoutingTableMessage alterRoutingTableMessage = new AlterRoutingTableMessage(Configuration.id, receiver, false, Configuration.myself);
-            nodeGateway.send(alterRoutingTableMessage, nodeInfo, Network.ALTER_NEIGHBOURS);
+            nodeGateway.send(alterRoutingTableMessage, nodeInfo, Methods.ALTER_NEIGHBOURS);
         });
     }
 

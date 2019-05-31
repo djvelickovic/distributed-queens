@@ -2,6 +2,7 @@ package com.crx.kids.project.node.services;
 
 import com.crx.kids.project.common.util.Result;
 import com.crx.kids.project.node.common.Configuration;
+import com.crx.kids.project.node.endpoints.Methods;
 import com.crx.kids.project.node.entities.QueensJob;
 import com.crx.kids.project.node.entities.QueensResult;
 import com.crx.kids.project.node.messages.JobState;
@@ -34,21 +35,6 @@ public class QueensService {
 
     @Autowired
     private RoutingService routingService;
-
-    public static void main(String[] args) {
-        QueensService queensService = new QueensService();
-//        queensService.calculateResults(6);
-//        int jobs = queensService.getMaxJobNumberForDimension(5);
-//        logger.info("Max jobs "+jobs);
-
-//        System.out.println(Arrays.toString(queensService.calculateStartingQueens(new QueensJob(5, 125, 7))));
-
-//        queensService.doQueensJob(new QueensJob(5, 125, 7));
-
-
-        queensService.calculateJobsByDimension(10);
-        queensService.startWorkForDimension(10);
-    }
 
     public void addJobsForDimension(int dimension, List<QueensJob> jobs) {
         Queue<QueensJob> jobQueue = new ConcurrentLinkedQueue<>();
@@ -220,7 +206,7 @@ public class QueensService {
                     List<QueensJob> queensJobs = pollJobs(dimension, jobsPerNode);
                     return new QueensJobsMessage(Configuration.id, i, dimension, queensJobs);
                 })
-                .forEach(m -> routingService.dispatchMessage(m, Network.QUEENS_JOBS));
+                .forEach(m -> routingService.dispatchMessage(m, Methods.QUEENS_JOBS));
 
         return Result.of(null);
     }
