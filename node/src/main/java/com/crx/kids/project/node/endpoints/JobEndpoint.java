@@ -1,6 +1,7 @@
 package com.crx.kids.project.node.endpoints;
 
 import com.crx.kids.project.node.common.Configuration;
+import com.crx.kids.project.node.common.Jobs;
 import com.crx.kids.project.node.common.Network;
 import com.crx.kids.project.node.endpoints.dto.StatusResponse;
 import com.crx.kids.project.node.messages.*;
@@ -45,7 +46,7 @@ public class JobEndpoint {
         }
 
         queensService.addJobsForDimension(queensJobsMessage.getDimension(), queensJobsMessage.getJobs());
-        queensService.startWorkForDimension(queensJobsMessage.getDimension());
+        jobService.startWorkForDimension(queensJobsMessage.getDimension());
 
         return ResponseEntity.ok().body(new CommonResponse(CommonType.OK));
     }
@@ -54,7 +55,7 @@ public class JobEndpoint {
     public ResponseEntity<CommonResponse> queens(@RequestBody BroadcastMessage<String> pauseMessage) {
 
         routingService.broadcastMessage(pauseMessage, Methods.QUEENS_PAUSE);
-        QueensService.currentActiveDim = -1;
+        Jobs.currentActiveDim = -1;
 
         return ResponseEntity.ok().body(new CommonResponse(CommonType.OK));
     }
@@ -68,7 +69,7 @@ public class JobEndpoint {
             return ResponseEntity.ok(new CommonResponse(CommonType.OK));
         }
 
-        List<JobState> jobsStates = queensService.getJobsStates();
+        List<JobState> jobsStates = jobService.getJobsStates();
 
         StatusMessage statusMessage = new StatusMessage(Configuration.id, statusRequestMessage.getSender(), statusRequestMessage.getStatusRequestId(), jobsStates);
         routingService.dispatchMessage(statusMessage, Methods.QUEENS_STATUS_COLLECTOR);

@@ -44,10 +44,11 @@ public class JobStealingService {
         Random rnd = new Random();
 
         Set<Integer> askedNodes = askedNodesByDimension.get(dimension);
+        askedNodes.add(Configuration.id);
 
         while (true) {
             int genId = rnd.nextInt(Network.maxNodeInSystem) + 1;
-            if (askedNodes.contains(genId)) {
+            if (!askedNodes.contains(genId)) {
                 return Optional.of(genId);
             }
             if (askedNodes.size() >= Network.maxNodeInSystem) {

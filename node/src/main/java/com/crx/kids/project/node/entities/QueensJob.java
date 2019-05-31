@@ -47,4 +47,9 @@ public class QueensJob {
     public void setJobId(int jobId) {
         this.jobId = jobId;
     }
+
+    @Override
+    public String toString() {
+        return "QJ = "+jobId;
+    }
 }

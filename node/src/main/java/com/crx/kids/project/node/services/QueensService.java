@@ -2,6 +2,7 @@ package com.crx.kids.project.node.services;
 
 import com.crx.kids.project.common.util.Result;
 import com.crx.kids.project.node.common.Configuration;
+import com.crx.kids.project.node.common.Jobs;
 import com.crx.kids.project.node.endpoints.Methods;
 import com.crx.kids.project.node.entities.QueensJob;
 import com.crx.kids.project.node.entities.QueensResult;
@@ -25,134 +26,25 @@ public class QueensService {
 
     private static final Logger logger = LoggerFactory.getLogger(QueensService.class);
 
-    // move to job common class
-    private static final Map<Integer, Queue<QueensJob>> jobsByDimensions = new ConcurrentHashMap<>();
-    private static final Map<Integer, Queue<QueensResult>> collectedResultsByDimensions = new ConcurrentHashMap<>();
-    private static final Set<Integer> finishedJobs = ConcurrentHashMap.newKeySet();
-
-    public static volatile int currentActiveDim;
-
     @Autowired
     private RoutingService routingService;
 
-    @Autowired
-    private JobStealingService jobStealingService;
 
     public void addJobsForDimension(int dimension, List<QueensJob> jobs) {
         Queue<QueensJob> jobQueue = new ConcurrentLinkedQueue<>();
 
-        if (jobsByDimensions.putIfAbsent(dimension, jobQueue) != null) {
-            jobQueue = jobsByDimensions.get(dimension);
+        if (Jobs.jobsByDimensions.putIfAbsent(dimension, jobQueue) != null) {
+            jobQueue = Jobs.jobsByDimensions.get(dimension);
         }
 
         jobQueue.addAll(jobs);
     }
 
-    // move to job
-    public List<JobState> getJobsStates() {
-        return  jobsByDimensions.entrySet().stream()
-                .map(e -> {
-                    Queue<QueensResult> resultQueue = collectedResultsByDimensions.get(e.getKey());
-                    if (resultQueue != null) {
-                        String status;
-                        if (e.getKey() == currentActiveDim){
-                            status = "active";
-                        }
-                        else if (e.getValue().size() == 0 && resultQueue.size() > 0){
-                            status = "done";
-                        }
-                        else if (e.getValue().size() != resultQueue.size()) {
-                            status = "paused";
-                        }
-                        else {
-                            logger.error("Shouldn not get here!");
-                            status = "fuzzy";
-                        }
-
-                        return new JobState(e.getKey(), status, resultQueue.size(), e.getValue().size());
-                    }
-                    return null;
-                })
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-
-    }
-
-    @Async
-    // move to job
-    public void startWorkForDimension(int dimension) {
-        Queue<QueensResult> resultsByDimension = new ConcurrentLinkedQueue<>();
-
-        if (collectedResultsByDimensions.putIfAbsent(dimension, resultsByDimension) != null) {
-            logger.info("Work for dimension has been already started: {}", dimension);
-
-            if (finishedJobs.contains(dimension)) {
-                logger.error("Work for dimension finished: {}", dimension);
-            }
-            else {
-                logger.info("Resuming for dimension has been already started: {}", dimension);
-                currentActiveDim = dimension;
-            }
-            return;
-        }
-
-        currentActiveDim = dimension;
-        logger.info("Starting work for dimension {}", dimension);
-
-        Queue<QueensJob> jobs = jobsByDimensions.get(dimension);
-
-        Queue<QueensResult> results = collectedResultsByDimensions.get(dimension);
-
-        while (!jobs.isEmpty()) {
-
-            if (currentActiveDim != dimension) {
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                logger.info("Waiting calculations for dimension {}", dimension);
-                continue;
-            }
-
-            QueensJob job = jobs.poll();
-            QueensResult qr = doQueensJob(job);
-            results.add(qr);
-
-        }
-
-        results.forEach(qr -> {
-            if (qr.getResults() != null) {
-                logger.debug("---- "+qr.getQueensJob().getJobId());
-                qr.getResults().forEach(result -> logger.info(Arrays.toString(result)));
-            }
-
-            resultsByDimension.add(qr);
-        });
-
-
-        while (true) {
-            Optional<List<QueensJob>> stolenJobs = jobStealingService.stealJobs(dimension);
-            if (!stolenJobs.isPresent()) {
-                break;
-            }
-            stolenJobs.get().forEach(job -> {
-                QueensResult qr = doQueensJob(job);
-                results.add(qr);
-            });
-        }
-
-        // TODO: Broadcast results
-
-        logger.info("Finished work for dimension {}", dimension);
-        finishedJobs.add(dimension);
-        currentActiveDim = -1;
-    }
 
 
     public List<QueensJob> pollHalfJobs(int dimension) {
 
-        Queue<QueensJob> jobQueue = jobsByDimensions.get(dimension);
+        Queue<QueensJob> jobQueue = Jobs.jobsByDimensions.get(dimension);
 
         if (jobQueue == null) {
             logger.error("There are no jobs for dimension {}", dimension);
@@ -176,7 +68,7 @@ public class QueensService {
             return new ArrayList<>();
         }
 
-        Queue<QueensJob> jobQueue = jobsByDimensions.get(dimension);
+        Queue<QueensJob> jobQueue = Jobs.jobsByDimensions.get(dimension);
 
         if (jobQueue == null) {
             logger.error("There are no jobs for dimension {}", dimension);
@@ -201,7 +93,7 @@ public class QueensService {
     public void calculateJobsByDimension(int dimension) {
         Queue<QueensJob> queensJobs =  new ConcurrentLinkedQueue<>();
 
-        if (jobsByDimensions.putIfAbsent(dimension, queensJobs) != null) {
+        if (Jobs.jobsByDimensions.putIfAbsent(dimension, queensJobs) != null) {
             Result schedResult = scheduleJobs(dimension, 0);
             if (schedResult.isError()) {
                 logger.error("Error scheduling results for zero {}", schedResult.getError());
@@ -281,7 +173,7 @@ public class QueensService {
         return Optional.of(startingQueens);
     }
 
-    private QueensResult doQueensJob(QueensJob queensJob) {
+    public QueensResult doQueensJob(QueensJob queensJob) {
         // columns
         Optional<Integer[]> queensOptional = calculateStartingQueens(queensJob);
 
