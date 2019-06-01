@@ -61,6 +61,10 @@ public class ControlEndpoint {
     @PostMapping(path = "pause", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity pause() {
 
+        if (Jobs.currentActiveDim.get() == -1) {
+            return ResponseEntity.ok(new ControlPlaneResponse("ERROR", "There are no active job."));
+        }
+
         criticalSectionService.submitProcedureForCriticalExecution(i -> {
             boolean pause = jobService.pause();
             BroadcastMessage<String> pauseBroadcastMessage = new BroadcastMessage<>(Configuration.id, UUID.randomUUID().toString());
@@ -72,7 +76,7 @@ public class ControlEndpoint {
                 logger.info("Failed to pause jobs.");
             }
         });
-        return ResponseEntity.ok(new ControlPlaneResponse("OK", ""));
+        return ResponseEntity.ok(new ControlPlaneResponse("OK", "Requesting job pausing."));
     }
 
     @PostMapping(path = "stop", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
@@ -100,7 +104,7 @@ public class ControlEndpoint {
             return ResponseEntity.ok(transformTable(queensResultResult.get()));
         }
 
-        return ResponseEntity.ok("Job for dimension "+dimensionsDTO.getDimension()+" has not been finished.");
+        return ResponseEntity.ok("Job for dimension "+dimensionsDTO.getDimension()+" has not been finished or started.");
     }
 
     @PostMapping(path = "result-simple", consumes = MediaType.APPLICATION_JSON_UTF8_VALUE, produces = MediaType.TEXT_PLAIN_VALUE)
@@ -115,7 +119,7 @@ public class ControlEndpoint {
             return ResponseEntity.ok(simpleTransform(queensResultResult.get()));
         }
 
-        return ResponseEntity.ok("Job for dimension "+dimensionsDTO.getDimension()+" has not been finished.");
+        return ResponseEntity.ok("Job for dimension "+dimensionsDTO.getDimension()+" has not been finished or started.");
     }
 
     private String simpleTransform(List<Integer[]> queens) {
