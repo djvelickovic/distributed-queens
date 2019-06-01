@@ -8,20 +8,26 @@ import com.crx.kids.project.node.messages.Message;
 import com.crx.kids.project.node.messages.response.CommonResponse;
 import com.crx.kids.project.node.messages.response.CommonType;
 import com.crx.kids.project.node.utils.NetUtil;
+import com.crx.kids.project.node.utils.ThreadUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Random;
+
 @Service
 public class NodeGateway {
 
     private static final Logger logger = LoggerFactory.getLogger(NodeGateway.class);
+    private static final Random rnd = new Random();
 
     public Result send(Message message, NodeInfo nextHop, String path) {
         String url = NetUtil.url(nextHop, path);
         logger.debug("Url for sending: {}", url);
+
+        ThreadUtil.sleep(rnd.nextInt(100)+200);
 
         try {
             RestTemplate client = new RestTemplate();

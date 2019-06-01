@@ -1,6 +1,7 @@
 package com.crx.kids.project.node.endpoints;
 
 import com.crx.kids.project.node.common.Configuration;
+import com.crx.kids.project.node.common.Jobs;
 import com.crx.kids.project.node.endpoints.dto.ControlPlaneResponse;
 import com.crx.kids.project.node.endpoints.dto.DimensionsDTO;
 import com.crx.kids.project.node.messages.BroadcastMessage;
@@ -41,6 +42,10 @@ public class ControlEndpoint {
             return ResponseEntity.status(400).body(new ControlPlaneResponse("MISSING_PARAMETERS",""));
         }
 
+        if (Jobs.currentActiveDim.get() == dimensionsDTO.getDimension()) {
+            return ResponseEntity.ok(new ControlPlaneResponse("ERROR", "Calculating for dimension "+dimensionsDTO.getDimension()+" has been already started."));
+
+        }
         criticalSectionService.submitProcedureForCriticalExecution(i -> {
             jobService.start(dimensionsDTO.getDimension());
         });
