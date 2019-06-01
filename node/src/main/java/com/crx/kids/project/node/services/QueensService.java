@@ -135,7 +135,7 @@ public class QueensService {
         return Result.of(null);
     }
 
-    private int getMaxJobNumberForDimension(int dimension) {
+    public int getMaxJobNumberForDimension(int dimension) {
         int absMaxJobs = (int) (100 / Configuration.limit);
         int jobs = 1;
         int cnt = 0;

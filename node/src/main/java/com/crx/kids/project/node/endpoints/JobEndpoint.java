@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
 @RequestMapping(path = "job")
@@ -124,11 +125,14 @@ public class JobEndpoint {
     public ResponseEntity<CommonResponse> queensResultBroadcast(@RequestBody QueensResultBroadcast queensResultBroadcast) {
 
         if (routingService.broadcastMessage(queensResultBroadcast, Methods.QUEENS_RESULT_BROADCAST)) {
-
-            logger.info("Collected results from {}, for dimension {}. Result count: {}", queensResultBroadcast.getSender(), queensResultBroadcast.getDimension(), queensResultBroadcast.getQueensResults().size());
-            jobService.addResults(queensResultBroadcast.getDimension(), queensResultBroadcast.getQueensResults());
+            logger.info("Collected Broadcast results from {}, for dimension {}. Result count: {}", queensResultBroadcast.getSender(), queensResultBroadcast.getDimension(), queensResultBroadcast.getQueensResults().size());
+            jobService.addBroadcastFinishedResults(queensResultBroadcast.getDimension(), queensResultBroadcast.getQueensResults());
         }
 
         return ResponseEntity.ok().body(new CommonResponse(CommonType.OK));
     }
+
+
+
+
 }

@@ -13,7 +13,7 @@ public class Jobs {
 
     // move to job common class
     public static final Map<Integer, Queue<QueensJob>> jobsByDimensions = new ConcurrentHashMap<>();
-    public static final Map<Integer, Queue<QueensResult>> collectedResultsByDimensions = new ConcurrentHashMap<>();
+    public static final Map<Integer, Queue<QueensResult>> calculatedResultsByDimensions = new ConcurrentHashMap<>();
     public static final Set<Integer> finishedJobs = ConcurrentHashMap.newKeySet();
 
     public static final AtomicInteger currentActiveDim = new AtomicInteger(-1);

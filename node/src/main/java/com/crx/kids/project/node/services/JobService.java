@@ -63,7 +63,7 @@ public class JobService {
     public List<JobState> getJobsStates() {
         return  Jobs.jobsByDimensions.entrySet().stream()
                 .map(e -> {
-                    Queue<QueensResult> resultQueue = Jobs.collectedResultsByDimensions.get(e.getKey());
+                    Queue<QueensResult> resultQueue = Jobs.calculatedResultsByDimensions.get(e.getKey());
                     if (resultQueue != null) {
                         String status;
                         if (e.getKey() == Jobs.currentActiveDim.get()){
@@ -94,7 +94,7 @@ public class JobService {
     public void startWorkForDimension(int dimension) {
         Queue<QueensResult> resultsByDimension = new ConcurrentLinkedQueue<>();
 
-        if (Jobs.collectedResultsByDimensions.putIfAbsent(dimension, resultsByDimension) != null) {
+        if (Jobs.calculatedResultsByDimensions.putIfAbsent(dimension, resultsByDimension) != null) {
             logger.info("Work for dimension has been already started: {}", dimension);
 
             if (Jobs.finishedJobs.contains(dimension)) {
@@ -112,28 +112,10 @@ public class JobService {
 
         Queue<QueensJob> jobs = Jobs.jobsByDimensions.get(dimension);
 
-        Queue<QueensResult> results = Jobs.collectedResultsByDimensions.get(dimension);
+        Queue<QueensResult> results = Jobs.calculatedResultsByDimensions.get(dimension);
 
-        while (!jobs.isEmpty()) {
-
-            if (Jobs.currentActiveDim.get() != dimension) {
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                logger.info("Waiting calculations for dimension {}", dimension);
-                continue;
-            }
-
-            QueensJob job = jobs.poll();
-            QueensResult qr = queensService.doQueensJob(job);
-            results.add(qr);
-
-            ThreadUtil.sleep(20);
-            logger.info("Dim {}. Job {}. Finished. Current Dim: {}",dimension, job.getJobId(), Jobs.currentActiveDim.get());
-        }
-
+        logger.info("Started consuming regular queue for dimension {}", dimension);
+        consumeQueue(dimension, jobs, results);
 
         results.forEach(qr -> {
             if (qr.getResults() != null) {
@@ -152,23 +134,11 @@ public class JobService {
             Queue<QueensJob> stolenJobs = stolenJobsOptional.get();
 
             while (!stolenJobs.isEmpty()) {
-
-                if (Jobs.currentActiveDim.get() != dimension) {
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    logger.info("Waiting calculations for dimension {}", dimension);
-                    continue;
-                }
-
-                QueensJob job = stolenJobs.poll();
-                QueensResult qr = queensService.doQueensJob(job);
-                results.add(qr);
-                ThreadUtil.sleep(20);
-                logger.info("Dim {}. Stolen Job {}. Finished",dimension, job.getJobId());
+                jobs.add(stolenJobs.poll());
             }
+
+            logger.info("Starting consuming stolen jobs! for dimension {}", dimension);
+            consumeQueue(dimension, jobs, results);
         }
 
         logger.info("Finished work for dimension {}", dimension);
@@ -179,13 +149,37 @@ public class JobService {
         logger.info("Broadcasting results for dimension {}. Result count = {}", dimension, results.size());
         routingService.broadcastMessage(queensResultBroadcast, Methods.QUEENS_RESULT_BROADCAST);
 
+        collectedResultsByDimensions.putIfAbsent(dimension, new ConcurrentHashMap<>());
+        Map<Integer, List<Integer[]>> transformedResults = collectedResultsByDimensions.get(dimension);
+
+        results.forEach(qr -> transformedResults.put(qr.getQueensJob().getJobId(), qr.getResults()));
+
+    }
+
+    public void consumeQueue(int dimension, Queue<QueensJob> jobsQueue, Queue<QueensResult> resultQueue){
+        Random rnd = new Random();
+        while (!jobsQueue.isEmpty()) {
+
+            if (Jobs.currentActiveDim.get() != dimension) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                logger.info("Waiting calculations for dimension {}", dimension);
+                continue;
+            }
+
+            QueensJob job = jobsQueue.poll();
+            QueensResult qr = queensService.doQueensJob(job);
+            resultQueue.add(qr);
+//            ThreadUtil.sleep(rnd.nextInt(50));
+            logger.info("Dim {}. Job {}. Finished",dimension, job.getJobId());
+        }
     }
 
 
-
-
-
-    public void addResults(Integer dimension, List<QueensResult> queensResults) {
+    public void addBroadcastFinishedResults(Integer dimension, List<QueensResult> queensResults) {
         collectedResultsByDimensions.putIfAbsent(dimension, new ConcurrentHashMap<>());
         Map<Integer, List<Integer[]>> results = collectedResultsByDimensions.get(dimension);
 
@@ -195,7 +189,23 @@ public class JobService {
     }
 
 
-    public Optional<Integer[]> result(int dimension) {
+    public Optional<List<Integer[]>> result(int dimension) {
+
+        int maxJobsByDimension = queensService.getMaxJobNumberForDimension(dimension);
+        if (collectedResultsByDimensions.get(dimension) != null) {
+            if (collectedResultsByDimensions.get(dimension).size() == maxJobsByDimension) {
+                return Optional.of(collectedResultsByDimensions.get(dimension).values().stream()
+                        .flatMap(Collection::stream)
+                        .collect(Collectors.toList()));
+            }
+            else {
+                logger.warn("Job for dimenison {} has not been finished. Required: {}, Curremt: {}", dimension, maxJobsByDimension, collectedResultsByDimensions.get(dimension).size());
+            }
+        }
+        else {
+            logger.warn("Collected results for dimension {} are null", dimension);
+        }
+
         return Optional.empty();
     }
 

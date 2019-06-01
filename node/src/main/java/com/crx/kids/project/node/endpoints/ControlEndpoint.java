@@ -14,8 +14,11 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
 @RequestMapping(path = "control")
@@ -80,14 +83,73 @@ public class ControlEndpoint {
     }
 
 
-    @PostMapping(path = "result", consumes = MediaType.APPLICATION_JSON_UTF8_VALUE, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    @PostMapping(path = "result", consumes = MediaType.APPLICATION_JSON_UTF8_VALUE, produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity result(@RequestBody DimensionsDTO dimensionsDTO) {
         if (dimensionsDTO.getDimension() == null || dimensionsDTO.getDimension() < 1) {
             return ResponseEntity.status(400).body(new ControlPlaneResponse("MISSING_PARAMETERS",""));
         }
 
-        Optional<Integer[]> queensResultResult = jobService.result(dimensionsDTO.getDimension());
+        Optional<List<Integer[]>> queensResultResult = jobService.result(dimensionsDTO.getDimension());
 
-        return ResponseEntity.ok(new ControlPlaneResponse("ERROR", "Job has been already started for queens d = "+dimensionsDTO.getDimension()));
+        if (queensResultResult.isPresent()) {
+            return ResponseEntity.ok(transformTable(queensResultResult.get()));
+        }
+
+        return ResponseEntity.ok("Job for dimension "+dimensionsDTO.getDimension()+" has not been finished.");
+    }
+
+    @PostMapping(path = "result-simple", consumes = MediaType.APPLICATION_JSON_UTF8_VALUE, produces = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity resultSimple(@RequestBody DimensionsDTO dimensionsDTO) {
+        if (dimensionsDTO.getDimension() == null || dimensionsDTO.getDimension() < 1) {
+            return ResponseEntity.status(400).body(new ControlPlaneResponse("MISSING_PARAMETERS",""));
+        }
+
+        Optional<List<Integer[]>> queensResultResult = jobService.result(dimensionsDTO.getDimension());
+
+        if (queensResultResult.isPresent()) {
+            return ResponseEntity.ok(simpleTransform(queensResultResult.get()));
+        }
+
+        return ResponseEntity.ok("Job for dimension "+dimensionsDTO.getDimension()+" has not been finished.");
+    }
+
+    private String simpleTransform(List<Integer[]> queens) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("QUEENS: "+queens.size()+"\n");
+        queens.forEach(q -> {
+            sb.append(Arrays.toString(q));
+            sb.append("\n");
+        });
+        return sb.toString();
+    }
+
+    private String transformTable(List<Integer[]> queens) {
+
+        StringBuilder sb = new StringBuilder();
+        AtomicInteger cnt = new AtomicInteger(0);
+        queens.forEach(q -> {
+            sb.append("QUEENS: "+cnt.incrementAndGet()+"\n\n");
+
+
+            sb.append(" ");
+            for (int j = 0; j < q.length; j++) {
+                sb.append(" ");
+                sb.append(j+1);
+            }
+            sb.append("\n");
+            for (int i = 0; i < q.length; i++) {
+                sb.append(i+1);
+                for (int j = 0; j < q.length; j++) {
+                    if (q[i] == j) {
+                        sb.append(" Q");
+                    } else {
+                        sb.append(" _");
+                    }
+                }
+                sb.append("\n");
+            }
+            sb.append("\n\n");
+        });
+        return sb.toString();
     }
 }
