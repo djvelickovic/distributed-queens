@@ -173,7 +173,7 @@ public class JobService {
             QueensJob job = jobsQueue.poll();
             QueensResult qr = queensService.doQueensJob(job);
             resultQueue.add(qr);
-//            ThreadUtil.sleep(rnd.nextInt(50));
+            ThreadUtil.sleep(rnd.nextInt(80)+20);
             logger.info("Dim {}. Job {}. Finished",dimension, job.getJobId());
         }
     }
