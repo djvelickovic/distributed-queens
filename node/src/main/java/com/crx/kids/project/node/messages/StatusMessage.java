@@ -1,7 +1,6 @@
 package com.crx.kids.project.node.messages;
 
 import java.util.List;
-import java.util.Map;
 
 public class StatusMessage extends Message {
 

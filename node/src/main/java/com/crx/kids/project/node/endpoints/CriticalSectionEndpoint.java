@@ -1,7 +1,6 @@
 package com.crx.kids.project.node.endpoints;
 
 import com.crx.kids.project.node.common.Configuration;
-import com.crx.kids.project.node.common.Network;
 import com.crx.kids.project.node.messages.BroadcastMessage;
 import com.crx.kids.project.node.messages.SuzukiKasamiTokenMessage;
 import com.crx.kids.project.node.messages.response.CommonResponse;

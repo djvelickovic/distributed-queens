@@ -3,20 +3,17 @@ package com.crx.kids.project.node.endpoints;
 import com.crx.kids.project.node.common.Configuration;
 import com.crx.kids.project.node.common.Network;
 import com.crx.kids.project.node.endpoints.dto.StatusResponse;
-import com.crx.kids.project.node.messages.*;
-import com.crx.kids.project.node.messages.newbie.NewbieAcceptedMessage;
-import com.crx.kids.project.node.messages.newbie.NewbieJoinMessage;
+import com.crx.kids.project.node.messages.PingMessage;
 import com.crx.kids.project.node.messages.response.CommonResponse;
 import com.crx.kids.project.node.messages.response.CommonType;
-import com.crx.kids.project.node.services.*;
+import com.crx.kids.project.node.services.CriticalSectionService;
+import com.crx.kids.project.node.services.RoutingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping(path = "test")

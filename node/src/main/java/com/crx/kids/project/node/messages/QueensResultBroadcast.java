@@ -3,7 +3,6 @@ package com.crx.kids.project.node.messages;
 import com.crx.kids.project.node.entities.QueensResult;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 public class QueensResultBroadcast extends BroadcastMessage<String> {

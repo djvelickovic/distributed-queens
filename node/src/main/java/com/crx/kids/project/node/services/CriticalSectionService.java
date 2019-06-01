@@ -2,11 +2,11 @@ package com.crx.kids.project.node.services;
 
 import com.crx.kids.project.node.common.Configuration;
 import com.crx.kids.project.node.common.CriticalSection;
+import com.crx.kids.project.node.common.Network;
 import com.crx.kids.project.node.endpoints.Methods;
 import com.crx.kids.project.node.entities.CriticalSectionToken;
 import com.crx.kids.project.node.messages.BroadcastMessage;
 import com.crx.kids.project.node.messages.SuzukiKasamiTokenMessage;
-import com.crx.kids.project.node.common.Network;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

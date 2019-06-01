@@ -1,7 +1,5 @@
 package com.crx.kids.project.node.messages;
 
-import java.util.List;
-
 public class StatusRequestMessage extends Message {
 
     private String statusRequestId;
