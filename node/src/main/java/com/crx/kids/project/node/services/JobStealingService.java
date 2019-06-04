@@ -33,7 +33,7 @@ public class JobStealingService {
     private QueensService queensService;
 
     public void addStolenJobs(int from, int dimension, List<QueensJob> stolenJobs) {
-        logger.info("Collected Stolen Jobs from {}, for dim {}. Jobs {}", from, dimension, stolenJobs.toString());
+        logger.info("Collected {} Stolen Jobs from {}, for dim {}. Jobs {}", stolenJobs.size(), from, dimension, stolenJobs.toString());
         askedNodesByDimension.get(dimension).add(from);
         stolenJobsByDimension.get(dimension).addAll(stolenJobs);
     }
