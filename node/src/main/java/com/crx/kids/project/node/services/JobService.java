@@ -29,7 +29,7 @@ public class JobService {
 
     public static final Map<String, Map<Integer, List<JobState>>> jobStatesByRequestId = new ConcurrentHashMap<>();
 
-    public static final Map<Integer, Map<Integer, List<Integer[]>>> collectedResultsByDimensions = new ConcurrentHashMap<>();
+
 
 
     @Autowired
@@ -50,9 +50,9 @@ public class JobService {
     }
 
     @Async
-    public void start(int dimension) {
+    public void initiateJobForDimension(int dimension) {
 
-        collectedResultsByDimensions.putIfAbsent(dimension, new ConcurrentHashMap<>());
+        Jobs.collectedResultsByDimensions.putIfAbsent(dimension, new ConcurrentHashMap<>());
 
         queensService.calculateJobsByDimension(dimension);
         startWorkForDimension(dimension);
@@ -110,6 +110,7 @@ public class JobService {
         Jobs.currentActiveDim.set(dimension);
         logger.info("Starting work for dimension {}", dimension);
 
+        Jobs.jobsByDimensions.putIfAbsent(dimension, new ConcurrentLinkedQueue<>());
         Queue<QueensJob> jobs = Jobs.jobsByDimensions.get(dimension);
 
         Queue<QueensResult> results = Jobs.calculatedResultsByDimensions.get(dimension);
@@ -149,14 +150,18 @@ public class JobService {
         logger.info("Broadcasting results for dimension {}. Result count = {}", dimension, results.size());
         routingService.broadcastMessage(queensResultBroadcast, Methods.QUEENS_RESULT_BROADCAST);
 
-        collectedResultsByDimensions.putIfAbsent(dimension, new ConcurrentHashMap<>());
-        Map<Integer, List<Integer[]>> transformedResults = collectedResultsByDimensions.get(dimension);
+        Jobs.collectedResultsByDimensions.putIfAbsent(dimension, new ConcurrentHashMap<>());
+        Map<Integer, List<Integer[]>> transformedResults = Jobs.collectedResultsByDimensions.get(dimension);
 
         results.forEach(qr -> transformedResults.put(qr.getQueensJob().getJobId(), qr.getResults()));
 
     }
 
     public void consumeQueue(int dimension, Queue<QueensJob> jobsQueue, Queue<QueensResult> resultQueue){
+//        if (jobsQueue == null) {
+//            logger.warn("Queue is null. Nothing to consme {}", dimension);
+//            return;
+//        }
         Random rnd = new Random();
         while (!jobsQueue.isEmpty()) {
 
@@ -180,8 +185,8 @@ public class JobService {
 
 
     public void addBroadcastFinishedResults(Integer dimension, List<QueensResult> queensResults) {
-        collectedResultsByDimensions.putIfAbsent(dimension, new ConcurrentHashMap<>());
-        Map<Integer, List<Integer[]>> results = collectedResultsByDimensions.get(dimension);
+        Jobs.collectedResultsByDimensions.putIfAbsent(dimension, new ConcurrentHashMap<>());
+        Map<Integer, List<Integer[]>> results = Jobs.collectedResultsByDimensions.get(dimension);
 
         queensResults.forEach(qr -> {
             results.put(qr.getQueensJob().getJobId(), qr.getResults());
@@ -192,14 +197,14 @@ public class JobService {
     public Optional<List<Integer[]>> result(int dimension) {
 
         int maxJobsByDimension = queensService.getMaxJobNumberForDimension(dimension);
-        if (collectedResultsByDimensions.get(dimension) != null) {
-            if (collectedResultsByDimensions.get(dimension).size() == maxJobsByDimension) {
-                return Optional.of(collectedResultsByDimensions.get(dimension).values().stream()
+        if (Jobs.collectedResultsByDimensions.get(dimension) != null) {
+            if (Jobs.collectedResultsByDimensions.get(dimension).size() == maxJobsByDimension) {
+                return Optional.of(Jobs.collectedResultsByDimensions.get(dimension).values().stream()
                         .flatMap(Collection::stream)
                         .collect(Collectors.toList()));
             }
             else {
-                logger.warn("Job for dimenison {} has not been finished. Required: {}, Curremt: {}", dimension, maxJobsByDimension, collectedResultsByDimensions.get(dimension).size());
+                logger.warn("Job for dimenison {} has not been finished. Required: {}, Curremt: {}", dimension, maxJobsByDimension, Jobs.collectedResultsByDimensions.get(dimension).size());
             }
         }
         else {

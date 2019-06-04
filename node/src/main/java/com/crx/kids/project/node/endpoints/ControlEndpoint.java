@@ -47,7 +47,7 @@ public class ControlEndpoint {
 
         }
         criticalSectionService.submitProcedureForCriticalExecution(i -> {
-            jobService.start(dimensionsDTO.getDimension());
+            jobService.initiateJobForDimension(dimensionsDTO.getDimension());
         });
 
         return ResponseEntity.ok(new ControlPlaneResponse("OK", ""));

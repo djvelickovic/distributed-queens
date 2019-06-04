@@ -3,6 +3,7 @@ package com.crx.kids.project.node.common;
 import com.crx.kids.project.node.entities.QueensJob;
 import com.crx.kids.project.node.entities.QueensResult;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
@@ -15,6 +16,8 @@ public class Jobs {
     public static final Map<Integer, Queue<QueensJob>> jobsByDimensions = new ConcurrentHashMap<>();
     public static final Map<Integer, Queue<QueensResult>> calculatedResultsByDimensions = new ConcurrentHashMap<>();
     public static final Set<Integer> finishedJobs = ConcurrentHashMap.newKeySet();
+
+    public static final Map<Integer, Map<Integer, List<Integer[]>>> collectedResultsByDimensions = new ConcurrentHashMap<>();
 
     public static final AtomicInteger currentActiveDim = new AtomicInteger(-1);
 

@@ -4,6 +4,7 @@ import com.crx.kids.project.common.CheckInResponse;
 import com.crx.kids.project.common.util.Result;
 import com.crx.kids.project.node.common.Configuration;
 import com.crx.kids.project.node.common.CriticalSection;
+import com.crx.kids.project.node.common.Jobs;
 import com.crx.kids.project.node.common.Network;
 import com.crx.kids.project.node.endpoints.Methods;
 import com.crx.kids.project.node.entities.CriticalSectionToken;
@@ -23,7 +24,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class NetworkService {
@@ -38,6 +42,9 @@ public class NetworkService {
 
     @Autowired
     private NodeGateway nodeGateway;
+
+    @Autowired
+    private JobService jobService;
 
     @EventListener(ApplicationReadyEvent.class)
     public void connectToBootstrap() {
@@ -110,9 +117,14 @@ public class NetworkService {
             newbieAcceptedMessage.setFirstNeighbour(new FullNodeInfo(Configuration.id, Configuration.myself));
         }
 
-        RestTemplate restTemplate = new RestTemplate();
-        ResponseEntity<CommonResponse> response = restTemplate.postForEntity(NetUtil.url(newbieJoinMessage.getNewbie(), Methods.NEWBIE_ACCEPTED), newbieAcceptedMessage, CommonResponse.class);
-        logger.info("Response {}", response);
+        newbieAcceptedMessage.setCurrentlyActiveDim(Jobs.currentActiveDim.get());
+        newbieAcceptedMessage.setCollectedResults(Jobs.collectedResultsByDimensions);
+        newbieAcceptedMessage.setFinishedJobs(Jobs.finishedJobs);
+
+        Result result = nodeGateway.send(newbieAcceptedMessage, newbieJoinMessage.getNewbie(), Methods.NEWBIE_ACCEPTED);
+//        RestTemplate restTemplate = new RestTemplate();
+//        ResponseEntity<CommonResponse> response = restTemplate.postForEntity(NetUtil.url(newbieJoinMessage.getNewbie(), Methods.NEWBIE_ACCEPTED), newbieAcceptedMessage, CommonResponse.class);
+        logger.info("Response {}", result);
     }
 
 
@@ -129,6 +141,22 @@ public class NetworkService {
         }
         finally {
             Network.configurationLock.writeLock().unlock();
+        }
+
+        newbieAcceptedMessage.getCollectedResults().forEach((dim, jobMap) -> {
+            Jobs.collectedResultsByDimensions.put(dim, new ConcurrentHashMap<>());
+            Map<Integer, List<Integer[]>> jobs = Jobs.collectedResultsByDimensions.get(dim);
+
+            jobMap.forEach((jobId, results) -> {
+                jobs.put(jobId, results);
+            });
+        });
+
+//        Jobs.currentActiveDim.set(newbieAcceptedMessage.getCurrentlyActiveDim());
+        Jobs.finishedJobs.addAll(newbieAcceptedMessage.getFinishedJobs());
+
+        if (newbieAcceptedMessage.getCurrentlyActiveDim() != -1) {
+            jobService.startWorkForDimension(newbieAcceptedMessage.getCurrentlyActiveDim());
         }
 
         Network.neighbours.forEach( (receiver, nodeInfo) -> {
