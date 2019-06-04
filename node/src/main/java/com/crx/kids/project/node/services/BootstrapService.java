@@ -68,4 +68,50 @@ public class BootstrapService {
         }
     }
 
+    public void lock() {
+
+        logger.info("Sending to bootstrap lock request {}", Configuration.myself);
+
+        String url = "http://"+Configuration.bootstrap.getIp()+":"+Configuration.bootstrap.getPort()+"/bootstrap/lock";
+
+        try {
+
+            RestTemplate restTemplate = new RestTemplate();
+            ResponseEntity response = restTemplate.getForEntity(url, String.class);
+
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                logger.error("Couldn't get response from bootstrap. Status code: {}", response.getStatusCode().value());
+            }
+            else {
+                logger.info("Successfully lock");
+            }
+        }
+        catch (Exception e) {
+            logger.error("Couldn't get response from bootstrap. Error: ",e);
+        }
+    }
+
+    public void unlock() {
+
+        logger.info("Sending to bootstrap unlock request {}", Configuration.myself);
+
+        String url = "http://"+Configuration.bootstrap.getIp()+":"+Configuration.bootstrap.getPort()+"/bootstrap/unlock";
+
+        try {
+
+            RestTemplate restTemplate = new RestTemplate();
+            ResponseEntity response = restTemplate.getForEntity(url, String.class);
+
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                logger.error("Couldn't get response from bootstrap. Status code: {}", response.getStatusCode().value());
+            }
+            else {
+                logger.info("Successfully lock");
+            }
+        }
+        catch (Exception e) {
+            logger.error("Couldn't get response from bootstrap. Error: ",e);
+        }
+    }
+
 }

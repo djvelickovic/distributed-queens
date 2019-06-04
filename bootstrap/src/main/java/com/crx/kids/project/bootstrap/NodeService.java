@@ -15,7 +15,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class NodeService {
 
     private static final AtomicInteger counter = new AtomicInteger();
-    private static final Queue<Integer> queue = new ConcurrentLinkedQueue<>();
 
     private static final Set<NodeInfo> nodes = ConcurrentHashMap.newKeySet();
 
@@ -25,11 +24,7 @@ public class NodeService {
             throw new RuntimeException("Node has already subscribed to system: "+ nodeInfo);
         }
 
-        Integer id = queue.poll();
-
-        if (id == null) {
-            id = counter.incrementAndGet();
-        }
+        int id = counter.incrementAndGet();
 
         CheckInResponse checkInResponse = new CheckInResponse(id, nodes.stream().findFirst().orElse(null));
         nodes.add(nodeInfo);
@@ -38,7 +33,7 @@ public class NodeService {
     }
 
     public void checkOut(CheckOutRequest checkOutRequest) {
-        queue.add(checkOutRequest.getId()); // check if already exist?
+        counter.decrementAndGet();
         nodes.remove(checkOutRequest.getNodeInfo());
     }
 }

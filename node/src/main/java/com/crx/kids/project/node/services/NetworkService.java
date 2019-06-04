@@ -10,8 +10,9 @@ import com.crx.kids.project.node.endpoints.Methods;
 import com.crx.kids.project.node.entities.CriticalSectionToken;
 import com.crx.kids.project.node.entities.QueensJob;
 import com.crx.kids.project.node.messages.AlterRoutingTableMessage;
+import com.crx.kids.project.node.messages.BroadcastMessage;
 import com.crx.kids.project.node.messages.FullNodeInfo;
-import com.crx.kids.project.node.messages.GhostMessage;
+import com.crx.kids.project.node.messages.HostMessage;
 import com.crx.kids.project.node.messages.newbie.NewbieAcceptedMessage;
 import com.crx.kids.project.node.messages.newbie.NewbieJoinMessage;
 import com.crx.kids.project.node.utils.RoutingUtils;
@@ -22,10 +23,7 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -49,6 +47,9 @@ public class NetworkService {
     @Autowired
     private CriticalSectionService criticalSectionService;
 
+    @Autowired
+    private RoutingService routingService;
+
     @EventListener(ApplicationReadyEvent.class)
     public void connectToBootstrap() {
         Optional<CheckInResponse> checkInResponseOptional = bootstrapService.checkIn(Configuration.bootstrap, Configuration.myself);
@@ -57,7 +58,7 @@ public class NetworkService {
             logger.info("CheckIn response {}", checkInResponseOptional.get());
 
             Configuration.id = checkInResponseOptional.get().getId();
-            Network.maxNodeInSystem = Configuration.id;
+            Network.maxNodeInSystem.set(Configuration.id);
 
             Network.firstKnownNode = checkInResponseOptional.get().getNodeInfo();
 
@@ -108,9 +109,9 @@ public class NetworkService {
             try {
                 // even numbers are connected to second smallest neighbour
                 if (newbieJoinMessage.getSender() % 2 == 0) {
-                    newbieAcceptedMessage.setFirstNeighbour(Network.secondSmallestNeighbour);
+                    newbieAcceptedMessage.setFirstNeighbour(Network.secondSmallestNeighbour());
                 } else { // odd numbers are connected to smallest neighbour
-                    newbieAcceptedMessage.setFirstNeighbour(Network.firstSmallestNeighbour);
+                    newbieAcceptedMessage.setFirstNeighbour(Network.firstSmallestNeighbour());
                 }
             } finally {
                 Network.configurationLock.readLock().unlock();
@@ -134,17 +135,8 @@ public class NetworkService {
     public void newbieAccepted(NewbieAcceptedMessage newbieAcceptedMessage) {
         logger.info("Newbie accepted with two neighbours {} and {}", newbieAcceptedMessage.getFirstNeighbour(), newbieAcceptedMessage.getSecondNeighbour());
 
-        Network.configurationLock.writeLock().lock();
-        try {
-            Network.neighbours.put(newbieAcceptedMessage.getFirstNeighbour().getId(), newbieAcceptedMessage.getFirstNeighbour());
-            Network.neighbours.put(newbieAcceptedMessage.getSecondNeighbour().getId(), newbieAcceptedMessage.getSecondNeighbour());
-
-            Network.firstSmallestNeighbour = newbieAcceptedMessage.getFirstNeighbour().getId() < newbieAcceptedMessage.getSecondNeighbour().getId() ? newbieAcceptedMessage.getFirstNeighbour() : newbieAcceptedMessage.getSecondNeighbour();
-            Network.secondSmallestNeighbour = newbieAcceptedMessage.getFirstNeighbour().getId() > newbieAcceptedMessage.getSecondNeighbour().getId() ? newbieAcceptedMessage.getFirstNeighbour() : newbieAcceptedMessage.getSecondNeighbour();
-        }
-        finally {
-            Network.configurationLock.writeLock().unlock();
-        }
+        Network.neighbours.put(newbieAcceptedMessage.getFirstNeighbour().getId(), newbieAcceptedMessage.getFirstNeighbour());
+        Network.neighbours.put(newbieAcceptedMessage.getSecondNeighbour().getId(), newbieAcceptedMessage.getSecondNeighbour());
 
         newbieAcceptedMessage.getCollectedResults().forEach((dim, jobMap) -> {
             Jobs.collectedResultsByDimensions.put(dim, new ConcurrentHashMap<>());
@@ -163,67 +155,26 @@ public class NetworkService {
         }
 
         Network.neighbours.forEach( (receiver, nodeInfo) -> {
-            AlterRoutingTableMessage alterRoutingTableMessage = new AlterRoutingTableMessage(Configuration.id, receiver, false, Configuration.myself);
+            AlterRoutingTableMessage alterRoutingTableMessage = new AlterRoutingTableMessage(Configuration.id, receiver, Configuration.myself);
             nodeGateway.send(alterRoutingTableMessage, nodeInfo, Methods.ALTER_NEIGHBOURS);
         });
     }
 
-    public void alterRoutingTable(AlterRoutingTableMessage alterRoutingTableMessage) {
-        logger.info("Altering routing table with {} : {}", alterRoutingTableMessage.getSender(), alterRoutingTableMessage.getNodeInfo());
+    public void handleHostRequest(HostMessage hostMessage) {
+        logger.info("Received ghost message {}", hostMessage);
 
-        FullNodeInfo newNode = new FullNodeInfo(alterRoutingTableMessage.getSender(), alterRoutingTableMessage.getNodeInfo());
-
-        Network.configurationLock.writeLock().lock();
-        try {
-            if (Network.firstSmallestNeighbour == null) {
-                Network.firstSmallestNeighbour = newNode;
-                logger.info("Set 1st smallest neighbour {}", newNode);
-
-            }
-            if (Network.secondSmallestNeighbour == null) {
-                Network.secondSmallestNeighbour = newNode;
-                logger.info("Set 2nd smallest neighbour {}", newNode);
-            }
-
-            if (newNode.getId() == Network.firstSmallestNeighbour.getId()) {
-                Network.firstSmallestNeighbour = newNode;
-                logger.info("Replaced 1st smallest neighbour {}", newNode);
-            }
-            else if (newNode.getId() == Network.secondSmallestNeighbour.getId()) {
-                Network.secondSmallestNeighbour = newNode;
-                logger.info("Replaced 2nd smallest neighbour {}", newNode);
-            }
-
-            if (newNode.getId() < Network.firstSmallestNeighbour.getId()) {
-                Network.secondSmallestNeighbour = Network.firstSmallestNeighbour;
-                Network.firstSmallestNeighbour = newNode;
-                logger.info("Replaced 1st and 2nd smallest nodes {}", newNode);
-            }
-            else if (newNode.getId() < Network.secondSmallestNeighbour.getId()) {
-                Network.firstSmallestNeighbour = newNode;
-                logger.info("Replaced 2nd smallest node {}", newNode);
-            }
-
-            logger.info("1st = {},  2nd = {}", Network.firstSmallestNeighbour, Network.secondSmallestNeighbour);
-
-            Network.neighbours.put(newNode.getId(), newNode);
-        }
-        finally {
-            Network.configurationLock.writeLock().unlock();
-        }
-    }
-
-    public void handleHostRequest(GhostMessage ghostMessage) {
-        logger.info("Received ghost message {}", ghostMessage);
-
-        criticalSectionService.submitProcedureForCriticalExecution(token -> {
-            if (ghostMessage.getStoppedJob() != -1) {
-                jobService.initiateJobForDimension(ghostMessage.getStoppedJob());
-            }
-        });
+        int oldHostId = Configuration.id;
+//        Configuration.id = hostMessage.getSender();
 
 
-        ghostMessage.getUnfinishedJobsForDimension().forEach((dim, jobQueue) -> {
+
+        logger.info("HOST: Broadcast leave message with {}", oldHostId);
+        Network.maxNodeInSystem.decrementAndGet();
+        BroadcastMessage<String> leaveBroadcast = new BroadcastMessage<>(oldHostId, UUID.randomUUID().toString());
+        routingService.broadcastMessage(leaveBroadcast, Methods.BROADCAST_LEAVE);
+
+        logger.info("HOST: Updating results");
+        hostMessage.getUnfinishedJobsForDimension().forEach((dim, jobQueue) -> {
             Jobs.jobsByDimensions.putIfAbsent(dim, new ConcurrentLinkedQueue<>());
             Queue<QueensJob> localJobQueue = Jobs.jobsByDimensions.get(dim);
 
@@ -233,8 +184,27 @@ public class NetworkService {
             }
         });
 
-        logger.info("Routing table: {}", ghostMessage.getRoutingTable());
+        // set routing table
+        logger.info("HOST: Routing table setup");
 
-        Network.ghostRoutingTables.put(ghostMessage.getSender(), ghostMessage.getRoutingTable());
+        // remove myself
+        hostMessage.getRoutingTable().remove(oldHostId);
+        Network.neighbours.clear();
+        Network.neighbours.putAll(hostMessage.getRoutingTable());
+        Configuration.id = hostMessage.getSender();
+        logger.info("HOST: Routing table: {}", hostMessage.getRoutingTable());
+        logger.info("HOST: NEW ID {}", Configuration.id);
+
+        logger.info("HOST: Sending alter routing table.");
+        Network.neighbours.forEach((id, nodeInfo) -> {
+            AlterRoutingTableMessage alterRoutingTableMessage = new AlterRoutingTableMessage(Configuration.id, id, Configuration.myself);
+            nodeGateway.send(alterRoutingTableMessage, nodeInfo, Methods.ALTER_NEIGHBOURS);
+        });
+
+        criticalSectionService.submitProcedureForCriticalExecution(token -> {
+            if (hostMessage.getStoppedJob() != -1) {
+                jobService.initiateJobForDimension(hostMessage.getStoppedJob());
+            }
+        });
     }
 }

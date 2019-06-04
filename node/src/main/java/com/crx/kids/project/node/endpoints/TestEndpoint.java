@@ -1,6 +1,7 @@
 package com.crx.kids.project.node.endpoints;
 
 import com.crx.kids.project.node.common.Configuration;
+import com.crx.kids.project.node.common.CriticalSection;
 import com.crx.kids.project.node.common.Network;
 import com.crx.kids.project.node.endpoints.dto.StatusResponse;
 import com.crx.kids.project.node.messages.PingMessage;
@@ -32,8 +33,11 @@ public class TestEndpoint {
     public ResponseEntity getAllNeighbours() {
         StatusResponse statusResponse = new StatusResponse();
         statusResponse.setNodes(Network.neighbours);
-        statusResponse.setFirstSmallest(Network.firstSmallestNeighbour);
-        statusResponse.setSecondSmallest(Network.secondSmallestNeighbour);
+        statusResponse.setFirstSmallest(Network.firstSmallestNeighbour());
+        statusResponse.setSecondSmallest(Network.secondSmallestNeighbour());
+        statusResponse.setMyself(Configuration.id);
+        statusResponse.setTokenHere(CriticalSection.token != null);
+        statusResponse.setTokenIdle(CriticalSection.tokenIdle.get());
         return ResponseEntity.ok().body(statusResponse);
     }
 

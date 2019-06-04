@@ -9,5 +9,5 @@ public class Configuration {
     public static NodeInfo bootstrap;
 
 
-    public static double limit = 0.1;
+    public static double limit = 0.01;
 }

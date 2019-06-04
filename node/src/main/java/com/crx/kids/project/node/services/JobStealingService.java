@@ -47,11 +47,11 @@ public class JobStealingService {
         askedNodes.add(Configuration.id);
 
         while (true) {
-            int genId = rnd.nextInt(Network.maxNodeInSystem) + 1;
+            int genId = rnd.nextInt(Network.maxNodeInSystem.get()) + 1;
             if (!askedNodes.contains(genId)) {
                 return Optional.of(genId);
             }
-            if (askedNodes.size() >= Network.maxNodeInSystem) {
+            if (askedNodes.size() >= Network.maxNodeInSystem.get()) {
                 return Optional.empty();
             }
         }

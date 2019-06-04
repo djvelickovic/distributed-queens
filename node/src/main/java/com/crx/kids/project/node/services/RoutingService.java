@@ -22,7 +22,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -124,7 +123,7 @@ public class RoutingService {
                 message.addTrace(new Trace(Configuration.id, "Broadcast."));
 
                 List<Result> broadcastResults = Network.neighbours.entrySet().stream()
-                        .filter(e -> !containTraceFor(e.getKey(), message))
+//                        .filter(e -> !containTraceFor(e.getKey(), message))
                         .map(Map.Entry::getValue)
                         .map(nodeInfo -> nodeGateway.send(message, nodeInfo, path))
                         .collect(Collectors.toList());
@@ -209,23 +208,14 @@ public class RoutingService {
         return maxCommonIndex;
     }
 
-    public CommonResponse handle(Message message, String method, Supplier<CommonResponse> myselfHandler, Function<Integer, CommonResponse> ghostHandler) {
+    public CommonResponse handle(Message message, String method, RoutingService routingService, Supplier<CommonResponse> myselfHandler) {
         int receiver = message.getReceiver();
         if (receiver == Configuration.id) {
             return myselfHandler.get();
         }
 
-        Optional<Integer> ghostIdOptional = Network.ghostRoutingTables.keySet().stream().filter(ghostId -> ghostId == receiver).findAny();
-
-        if (!ghostIdOptional.isPresent()) {
-            // todo: route
-            executor.submit(() -> dispatchMessage(message, method));
-            return new CommonResponse(CommonType.OK);
-        }
-
-        logger.error("GHOST: alter message for {}", ghostIdOptional.get());
-
-        return ghostHandler.apply(ghostIdOptional.get());
+        routingService.dispatchMessage(message, method);
+        return new CommonResponse(CommonType.OK);
     }
 
 

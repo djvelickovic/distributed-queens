@@ -1,10 +1,8 @@
 package com.crx.kids.project.node.endpoints;
 
-import com.crx.kids.project.node.common.Configuration;
 import com.crx.kids.project.node.common.Jobs;
 import com.crx.kids.project.node.endpoints.dto.ControlPlaneResponse;
 import com.crx.kids.project.node.endpoints.dto.DimensionsDTO;
-import com.crx.kids.project.node.messages.BroadcastMessage;
 import com.crx.kids.project.node.services.CriticalSectionService;
 import com.crx.kids.project.node.services.JobService;
 import com.crx.kids.project.node.services.RoutingService;
@@ -19,7 +17,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController

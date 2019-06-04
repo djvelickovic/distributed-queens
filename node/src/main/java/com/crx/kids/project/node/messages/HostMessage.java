@@ -6,20 +6,29 @@ import com.crx.kids.project.node.entities.QueensJob;
 import java.util.Map;
 import java.util.Queue;
 
-public class GhostMessage extends Message {
+public class HostMessage extends Message {
     private Map<Integer, NodeInfo> routingTable;
-
     private Map<Integer, Queue<QueensJob>> unfinishedJobsForDimension;
     private Integer stoppedJob;
+    private NodeInfo myself;
 
-    public GhostMessage() {
+    public HostMessage() {
     }
 
-    public GhostMessage(int sender, int receiver, Integer stoppedJob, Map<Integer, NodeInfo> routingTable, Map<Integer, Queue<QueensJob>> unfinishedJobsForDimension) {
+    public HostMessage(int sender, int receiver, Integer stoppedJob, Map<Integer, NodeInfo> routingTable, Map<Integer, Queue<QueensJob>> unfinishedJobsForDimension, NodeInfo myself) {
         super(sender, receiver);
         this.routingTable = routingTable;
         this.unfinishedJobsForDimension = unfinishedJobsForDimension;
         this.stoppedJob = stoppedJob;
+        this.myself = myself;
+    }
+
+    public NodeInfo getMyself() {
+        return myself;
+    }
+
+    public void setMyself(NodeInfo myself) {
+        this.myself = myself;
     }
 
     public Integer getStoppedJob() {

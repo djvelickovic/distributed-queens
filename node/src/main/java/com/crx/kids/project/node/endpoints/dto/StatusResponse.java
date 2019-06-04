@@ -6,11 +6,39 @@ import com.crx.kids.project.node.messages.FullNodeInfo;
 import java.util.Map;
 
 public class StatusResponse {
+    private int myself;
     private Map<Integer, NodeInfo> nodes;
     private FullNodeInfo firstSmallest;
     private FullNodeInfo secondSmallest;
+    private boolean tokenIdle;
+    private boolean tokenHere;
+
 
     public StatusResponse() {
+    }
+
+    public boolean isTokenIdle() {
+        return tokenIdle;
+    }
+
+    public void setTokenIdle(boolean tokenIdle) {
+        this.tokenIdle = tokenIdle;
+    }
+
+    public boolean isTokenHere() {
+        return tokenHere;
+    }
+
+    public void setTokenHere(boolean tokenHere) {
+        this.tokenHere = tokenHere;
+    }
+
+    public int getMyself() {
+        return myself;
+    }
+
+    public void setMyself(int myself) {
+        this.myself = myself;
     }
 
     public Map<Integer, NodeInfo> getNodes() {

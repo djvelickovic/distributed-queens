@@ -121,7 +121,7 @@ public class QueensService {
 
     private Result scheduleJobs(int dimension, int maxJobs) {
 
-        int maxNodeInSystem = Network.maxNodeInSystem;
+        int maxNodeInSystem = Network.maxNodeInSystem.get();
         int jobsPerNode = maxJobs / maxNodeInSystem;
 
         IntStream.rangeClosed(1, maxNodeInSystem)

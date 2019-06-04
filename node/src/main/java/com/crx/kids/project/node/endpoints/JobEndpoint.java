@@ -44,11 +44,9 @@ public class JobEndpoint {
     public ResponseEntity<CommonResponse> queens(@RequestBody QueensJobsMessage queensJobsMessage) {
 
         return ResponseEntity.ok(
-                routingService.handle(queensJobsMessage, Methods.QUEENS_JOBS, () -> {
+                routingService.handle(queensJobsMessage, Methods.QUEENS_JOBS, routingService, () -> {
                     queensService.addJobsForDimension(queensJobsMessage.getDimension(), queensJobsMessage.getJobs());
                     jobService.startWorkForDimension(queensJobsMessage.getDimension());
-                    return new CommonResponse(CommonType.OK);
-                }, ghostId -> {
                     return new CommonResponse(CommonType.OK);
                 }));
     }
@@ -68,13 +66,11 @@ public class JobEndpoint {
     public ResponseEntity<CommonResponse> queenStatus(@RequestBody StatusRequestMessage statusRequestMessage) {
 
         return ResponseEntity.ok(
-                routingService.handle(statusRequestMessage, Methods.QUEENS_STATUS, () -> {
+                routingService.handle(statusRequestMessage, Methods.QUEENS_STATUS, routingService, () -> {
                     List<JobState> jobsStates = jobService.getJobsStates();
 
                     StatusMessage statusMessage = new StatusMessage(Configuration.id, statusRequestMessage.getSender(), statusRequestMessage.getStatusRequestId(), jobsStates);
                     routingService.dispatchMessage(statusMessage, Methods.QUEENS_STATUS_COLLECTOR);
-                    return new CommonResponse(CommonType.OK);
-                }, ghostId -> {
                     return new CommonResponse(CommonType.OK);
                 }));
     }
@@ -84,10 +80,8 @@ public class JobEndpoint {
     public ResponseEntity<CommonResponse> queenStatusCollector(@RequestBody StatusMessage statusMessage) {
 
         return ResponseEntity.ok(
-                routingService.handle(statusMessage, Methods.QUEENS_STATUS_COLLECTOR, () -> {
+                routingService.handle(statusMessage, Methods.QUEENS_STATUS_COLLECTOR, routingService, () -> {
                     jobService.putStatusMessage(statusMessage);
-                    return new CommonResponse(CommonType.OK);
-                }, ghostId -> {
                     return new CommonResponse(CommonType.OK);
                 }));
     }
@@ -95,11 +89,9 @@ public class JobEndpoint {
     @PostMapping(path = "stealing-request", consumes = MediaType.APPLICATION_JSON_UTF8_VALUE, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResponse> stealingRequest(@RequestBody JobStealingMessage stealingMessage) {
         return ResponseEntity.ok(
-                routingService.handle(stealingMessage, Methods.JOB_STEALING_REQUEST, () -> {
+                routingService.handle(stealingMessage, Methods.JOB_STEALING_REQUEST, routingService, () -> {
                     jobStealingService.sendStolenJobs(stealingMessage.getSender(), stealingMessage.getDimension());
 
-                    return new CommonResponse(CommonType.OK);
-                }, ghostId -> {
                     return new CommonResponse(CommonType.OK);
                 }));
     }
@@ -108,11 +100,8 @@ public class JobEndpoint {
     public ResponseEntity<CommonResponse> stealingCollector(@RequestBody StolenJobsMessage stolenJobsMessage) {
 
         return ResponseEntity.ok(
-                routingService.handle(stolenJobsMessage, Methods.JOB_STEALING_COLLECTOR, () -> {
+                routingService.handle(stolenJobsMessage, Methods.JOB_STEALING_COLLECTOR, routingService, () -> {
                     jobStealingService.addStolenJobs(stolenJobsMessage.getSender(), stolenJobsMessage.getDimension(), stolenJobsMessage.getStolenJobs());
-
-                    return new CommonResponse(CommonType.OK);
-                }, ghostId -> {
                     return new CommonResponse(CommonType.OK);
                 }));
     }

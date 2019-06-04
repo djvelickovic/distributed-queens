@@ -133,7 +133,7 @@ public class CriticalSectionService {
     public void updateToken(CriticalSectionToken token) {
 
 
-        IntStream.rangeClosed(1, Network.maxNodeInSystem).forEach(i -> {
+        IntStream.rangeClosed(1, Network.maxNodeInSystem.get()).forEach(i -> {
             int rn = CriticalSection.suzukiKasamiCounterByNodes.getOrDefault(i, 0);
             int ln = token.getSuzukiKasamiNodeMap().getOrDefault(i, 0);
 

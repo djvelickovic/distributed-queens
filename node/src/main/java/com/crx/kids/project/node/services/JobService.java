@@ -258,7 +258,7 @@ public class JobService {
         Map<Integer, List<JobState>> jobsStatesByNodes = new ConcurrentHashMap<>();
         jobStatesByRequestId.put(statusRequestId, jobsStatesByNodes);
 
-        int sentToNodes = Network.maxNodeInSystem;
+        int sentToNodes = Network.maxNodeInSystem.get();
 
         IntStream.rangeClosed(1, sentToNodes)
                 .filter(nodeId -> nodeId != Configuration.id)
