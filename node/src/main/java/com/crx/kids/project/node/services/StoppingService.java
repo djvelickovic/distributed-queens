@@ -81,7 +81,8 @@ public class StoppingService {
             logger.info("STOPPING: Sending alter routing table message to neighbours");
 
             Network.neighbours.forEach((id, nodeInfo) -> { // nodeId / 2 + 1 will be notified that I m ghost!
-                AlterRoutingTableMessage alterRoutingTableMessage = new AlterRoutingTableMessage(Configuration.id, id, true, hostNode);
+                FullNodeInfo fakeNodeInfo = new FullNodeInfo(Configuration.id, hostNode);
+                AlterRoutingTableMessage alterRoutingTableMessage = new AlterRoutingTableMessage(Configuration.id, id, true, fakeNodeInfo);
                 routingService.dispatchMessageNonAsync(alterRoutingTableMessage, Methods.ALTER_NEIGHBOURS);
             });
 

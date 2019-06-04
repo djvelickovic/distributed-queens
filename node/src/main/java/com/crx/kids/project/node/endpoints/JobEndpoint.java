@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
 @RequestMapping(path = "job")
@@ -43,15 +42,15 @@ public class JobEndpoint {
 
     @PostMapping(path = "queens", consumes = MediaType.APPLICATION_JSON_UTF8_VALUE, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResponse> queens(@RequestBody QueensJobsMessage queensJobsMessage) {
-        if (queensJobsMessage.getReceiver() != Configuration.id) {
-            routingService.dispatchMessage(queensJobsMessage, Methods.QUEENS_JOBS);
-            return ResponseEntity.ok(new CommonResponse(CommonType.OK));
-        }
 
-        queensService.addJobsForDimension(queensJobsMessage.getDimension(), queensJobsMessage.getJobs());
-        jobService.startWorkForDimension(queensJobsMessage.getDimension());
-
-        return ResponseEntity.ok().body(new CommonResponse(CommonType.OK));
+        return ResponseEntity.ok(
+                routingService.handle(queensJobsMessage, Methods.QUEENS_JOBS, () -> {
+                    queensService.addJobsForDimension(queensJobsMessage.getDimension(), queensJobsMessage.getJobs());
+                    jobService.startWorkForDimension(queensJobsMessage.getDimension());
+                    return new CommonResponse(CommonType.OK);
+                }, ghostId -> {
+                    return new CommonResponse(CommonType.OK);
+                }));
     }
 
     @PostMapping(path = "queens-pause", consumes = MediaType.APPLICATION_JSON_UTF8_VALUE, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
@@ -68,57 +67,54 @@ public class JobEndpoint {
     @PostMapping(path = "queens-status", consumes = MediaType.APPLICATION_JSON_UTF8_VALUE, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResponse> queenStatus(@RequestBody StatusRequestMessage statusRequestMessage) {
 
-        if (statusRequestMessage.getReceiver() != Configuration.id) {
-            routingService.dispatchMessage(statusRequestMessage, Methods.QUEENS_STATUS);
-            return ResponseEntity.ok(new CommonResponse(CommonType.OK));
-        }
+        return ResponseEntity.ok(
+                routingService.handle(statusRequestMessage, Methods.QUEENS_STATUS, () -> {
+                    List<JobState> jobsStates = jobService.getJobsStates();
 
-        List<JobState> jobsStates = jobService.getJobsStates();
-
-        StatusMessage statusMessage = new StatusMessage(Configuration.id, statusRequestMessage.getSender(), statusRequestMessage.getStatusRequestId(), jobsStates);
-        routingService.dispatchMessage(statusMessage, Methods.QUEENS_STATUS_COLLECTOR);
-
-        return ResponseEntity.ok().body(new CommonResponse(CommonType.OK));
+                    StatusMessage statusMessage = new StatusMessage(Configuration.id, statusRequestMessage.getSender(), statusRequestMessage.getStatusRequestId(), jobsStates);
+                    routingService.dispatchMessage(statusMessage, Methods.QUEENS_STATUS_COLLECTOR);
+                    return new CommonResponse(CommonType.OK);
+                }, ghostId -> {
+                    return new CommonResponse(CommonType.OK);
+                }));
     }
 
 
     @PostMapping(path = "queens-status-collector", consumes = MediaType.APPLICATION_JSON_UTF8_VALUE, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResponse> queenStatusCollector(@RequestBody StatusMessage statusMessage) {
 
-        if (statusMessage.getReceiver() != Configuration.id) {
-            routingService.dispatchMessage(statusMessage, Methods.QUEENS_STATUS_COLLECTOR);
-            return ResponseEntity.ok(new CommonResponse(CommonType.OK));
-        }
-
-        jobService.putStatusMessage(statusMessage);
-
-        return ResponseEntity.ok().body(new CommonResponse(CommonType.OK));
+        return ResponseEntity.ok(
+                routingService.handle(statusMessage, Methods.QUEENS_STATUS_COLLECTOR, () -> {
+                    jobService.putStatusMessage(statusMessage);
+                    return new CommonResponse(CommonType.OK);
+                }, ghostId -> {
+                    return new CommonResponse(CommonType.OK);
+                }));
     }
 
     @PostMapping(path = "stealing-request", consumes = MediaType.APPLICATION_JSON_UTF8_VALUE, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResponse> stealingRequest(@RequestBody JobStealingMessage stealingMessage) {
+        return ResponseEntity.ok(
+                routingService.handle(stealingMessage, Methods.JOB_STEALING_REQUEST, () -> {
+                    jobStealingService.sendStolenJobs(stealingMessage.getSender(), stealingMessage.getDimension());
 
-        if (stealingMessage.getReceiver() != Configuration.id) {
-            routingService.dispatchMessage(stealingMessage, Methods.JOB_STEALING_REQUEST);
-            return ResponseEntity.ok(new CommonResponse(CommonType.OK));
-        }
-
-        jobStealingService.sendStolenJobs(stealingMessage.getSender(), stealingMessage.getDimension());
-
-        return ResponseEntity.ok().body(new CommonResponse(CommonType.OK));
+                    return new CommonResponse(CommonType.OK);
+                }, ghostId -> {
+                    return new CommonResponse(CommonType.OK);
+                }));
     }
 
     @PostMapping(path = "stealing-collector", consumes = MediaType.APPLICATION_JSON_UTF8_VALUE, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResponse> stealingCollector(@RequestBody StolenJobsMessage stolenJobsMessage) {
 
-        if (stolenJobsMessage.getReceiver() != Configuration.id) {
-            routingService.dispatchMessage(stolenJobsMessage, Methods.JOB_STEALING_COLLECTOR);
-            return ResponseEntity.ok(new CommonResponse(CommonType.OK));
-        }
+        return ResponseEntity.ok(
+                routingService.handle(stolenJobsMessage, Methods.JOB_STEALING_COLLECTOR, () -> {
+                    jobStealingService.addStolenJobs(stolenJobsMessage.getSender(), stolenJobsMessage.getDimension(), stolenJobsMessage.getStolenJobs());
 
-        jobStealingService.addStolenJobs(stolenJobsMessage.getSender(), stolenJobsMessage.getDimension(), stolenJobsMessage.getStolenJobs());
-
-        return ResponseEntity.ok().body(new CommonResponse(CommonType.OK));
+                    return new CommonResponse(CommonType.OK);
+                }, ghostId -> {
+                    return new CommonResponse(CommonType.OK);
+                }));
     }
 
     @PostMapping(path = "queens-result-broadcast", consumes = MediaType.APPLICATION_JSON_UTF8_VALUE, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)

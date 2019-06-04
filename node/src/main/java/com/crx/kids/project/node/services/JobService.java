@@ -168,7 +168,7 @@ public class JobService {
         Queue<QueensResult> results = Jobs.calculatedResultsByDimensions.get(dimension);
         QueensResultBroadcast queensResultBroadcast = new QueensResultBroadcast(Configuration.id, dimension, new ArrayList<>(results));
         logger.info("Broadcasting results for dimension {}. Result count = {}", dimension, results.size());
-        routingService.dispatchMessageNonAsync(queensResultBroadcast, Methods.QUEENS_RESULT_BROADCAST);
+        routingService.broadcastMessage(queensResultBroadcast, Methods.QUEENS_RESULT_BROADCAST);
     }
 
 
