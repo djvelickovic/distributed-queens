@@ -2,7 +2,7 @@ package com.crx.kids.project.node.messages;
 
 import com.crx.kids.project.node.entities.CriticalSectionToken;
 
-public class SuzukiKasamiTokenMessage extends Message {
+public class SuzukiKasamiTokenMessage extends DirectMessage {
 
     private CriticalSectionToken criticalSectionToken;
 

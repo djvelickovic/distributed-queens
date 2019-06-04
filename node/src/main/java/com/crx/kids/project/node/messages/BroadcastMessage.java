@@ -9,7 +9,7 @@ public class BroadcastMessage<T> extends Message {
     }
 
     public BroadcastMessage(int sender, T key) {
-        super(sender, -1);
+        super(sender);
         this.id = key;
     }
 

@@ -3,11 +3,10 @@ package com.crx.kids.project.node.services;
 import com.crx.kids.project.common.NodeInfo;
 import com.crx.kids.project.common.util.Result;
 import com.crx.kids.project.node.common.Configuration;
+import com.crx.kids.project.node.common.Ghost;
 import com.crx.kids.project.node.common.Network;
-import com.crx.kids.project.node.messages.BroadcastMessage;
-import com.crx.kids.project.node.messages.FullNodeInfo;
-import com.crx.kids.project.node.messages.Message;
-import com.crx.kids.project.node.messages.Trace;
+import com.crx.kids.project.node.common.Shell;
+import com.crx.kids.project.node.messages.*;
 import com.crx.kids.project.node.messages.response.CommonResponse;
 import com.crx.kids.project.node.messages.response.CommonType;
 import com.crx.kids.project.node.utils.RoutingUtils;
@@ -48,12 +47,12 @@ public class RoutingService {
      * @param receiver
      * @return
      */
-    private Optional<FullNodeInfo> nextHop(int sender, int receiver, Supplier<Map<Integer, NodeInfo>> neighbours) {
-        if (Network.neighbours.isEmpty()) {
+    private Optional<FullNodeInfo> nextHop(Ghost sender, int receiver, Supplier<Map<Integer, NodeInfo>> neighbours) {
+        if (sender.getNetwork().getRoutingTable().isEmpty()) {
             return Optional.empty();
         }
 
-        NodeInfo nextHop = Network.neighbours.getOrDefault(receiver, null);
+        NodeInfo nextHop = sender.getNetwork().getRoutingTable().getOrDefault(receiver, null);
 
         // first find from neighbours
         if (nextHop != null) {
@@ -63,7 +62,7 @@ public class RoutingService {
 
         // second try to utilize algorithm for finding next hop
 
-        List<Integer> senderChain = RoutingUtils.chain(sender);
+        List<Integer> senderChain = RoutingUtils.chain(sender.getConfiguration().getId());
         List<Integer> receiverChain = RoutingUtils.chain(receiver);
 
         int maxCommonNumberPosition = maxCommonNumber(senderChain, receiverChain);
@@ -105,13 +104,13 @@ public class RoutingService {
     }
 
     @Async
-    public void initiateBroadcast(String path) {
+    public void initiateBroadcast(Ghost ghost, String path) {
         logger.info("Creating and broadcasting {} message to neighbours.", path);
-        broadcastMessage(new BroadcastMessage<>(Configuration.id, UUID.randomUUID().toString()), path);
+        broadcastMessage(ghost, new BroadcastMessage<>(ghost.getConfiguration().getId(), UUID.randomUUID().toString()), path);
     }
 
 
-    public boolean broadcastMessage(BroadcastMessage message, String path) {
+    public boolean broadcastMessage(Ghost sender, BroadcastMessage message, String path) {
         if (!broadcastMessages.add(message)) {
             return false;
         }
@@ -121,9 +120,9 @@ public class RoutingService {
             try {
                 logger.info("Broadcasting message {}. Action: {}", message, path);
 
-                message.addTrace(new Trace(Configuration.id, "Broadcast."));
+                message.addTrace(new Trace(sender.getConfiguration().getId(), "Broadcast."));
 
-                List<Result> broadcastResults = Network.neighbours.entrySet().stream()
+                List<Result> broadcastResults = sender.getNetwork().getRoutingTable().entrySet().stream()
                         .filter(e -> !containTraceFor(e.getKey(), message))
                         .map(Map.Entry::getValue)
                         .map(nodeInfo -> nodeGateway.send(message, nodeInfo, path))
@@ -148,17 +147,13 @@ public class RoutingService {
     }
 
     @Async
-    public void dispatchMessage(Message message, String path) {
-        dispatchMessageNonAsync(message, path);
-    }
-
-    public void dispatchMessageNonAsync(Message message, String path) {
+    public void dispatchMessage(Ghost sender, DirectMessage message, String path) {
         try {
-            message.addTrace(new Trace(Configuration.id, "Rerouted."));
+            message.addTrace(new Trace(sender.getConfiguration().getId(), "Rerouted."));
 
             // loop until next hop is determined
             FullNodeInfo nextHop = ThreadUtil.loopWithResult(300, (l) -> {
-                Optional<FullNodeInfo> optionalNextHop = nextHop(Configuration.id, message.getReceiver(), () -> Network.neighbours);
+                Optional<FullNodeInfo> optionalNextHop = nextHop(sender, message.getReceiver(), () -> sender.getNetwork().getRoutingTable());
                 if (optionalNextHop.isPresent()) {
                     l.stop();
                     return optionalNextHop.get();
@@ -182,7 +177,6 @@ public class RoutingService {
             logger.error("Error while dispatching message", e);
         }
     }
-
 
 
     private int maxCommonNumber(List<Integer> list1, List<Integer> list2) {
@@ -209,23 +203,19 @@ public class RoutingService {
         return maxCommonIndex;
     }
 
-    public CommonResponse handle(Message message, String method, Supplier<CommonResponse> myselfHandler, Function<Integer, CommonResponse> ghostHandler) {
+    public CommonResponse handle(DirectMessage message, String method, Function<Ghost, CommonResponse> ghostHandler) {
         int receiver = message.getReceiver();
-        if (receiver == Configuration.id) {
-            return myselfHandler.get();
+
+        Ghost ghost = Shell.ghostsInTheShell.get(receiver);
+
+        if (ghost != null) {
+            logger.info("Ghost {} is handling method {}.", ghost.getConfiguration().getId(), method);
+            return ghostHandler.apply(ghost);
         }
 
-        Optional<Integer> ghostIdOptional = Network.ghostRoutingTables.keySet().stream().filter(ghostId -> ghostId == receiver).findAny();
-
-        if (!ghostIdOptional.isPresent()) {
-            // todo: route
-            executor.submit(() -> dispatchMessage(message, method));
-            return new CommonResponse(CommonType.OK);
-        }
-
-        logger.error("GHOST: alter message for {}", ghostIdOptional.get());
-
-        return ghostHandler.apply(ghostIdOptional.get());
+        // TODO: reconsider
+        executor.submit(() -> dispatchMessage(Shell.host, message, method));
+        return new CommonResponse(CommonType.OK);
     }
 
 

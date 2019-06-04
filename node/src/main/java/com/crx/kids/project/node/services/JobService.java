@@ -1,6 +1,7 @@
 package com.crx.kids.project.node.services;
 
 import com.crx.kids.project.node.common.Configuration;
+import com.crx.kids.project.node.common.Ghost;
 import com.crx.kids.project.node.common.Jobs;
 import com.crx.kids.project.node.common.Network;
 import com.crx.kids.project.node.endpoints.Methods;
@@ -24,7 +25,6 @@ import java.util.stream.IntStream;
 public class JobService {
     private static final Logger logger = LoggerFactory.getLogger(JobService.class);
 
-    public static final Map<String, Map<Integer, List<JobState>>> jobStatesByRequestId = new ConcurrentHashMap<>();
 
 
 
@@ -47,23 +47,22 @@ public class JobService {
     }
 
     @Async
-    public void initiateJobForDimension(int dimension) {
+    public void initiateJobForDimension(Ghost ghost, int dimension) {
 
-        Jobs.collectedResultsByDimensions.putIfAbsent(dimension, new ConcurrentHashMap<>());
+        ghost.getJobs().getCollectedResultsByDimensions().putIfAbsent(dimension, new ConcurrentHashMap<>());
 
-        queensService.calculateJobsByDimension(dimension);
-        startWorkForDimension(dimension);
-
+        queensService.calculateJobsByDimension(ghost, dimension);
+        startWorkForDimension(ghost, dimension);
     }
 
 
-    public List<JobState> getJobsStates() {
-        return  Jobs.jobsByDimensions.entrySet().stream()
+    public List<JobState> getJobsStates(Ghost ghost) {
+        return  ghost.getJobs().getJobsByDimensions().entrySet().stream()
                 .map(e -> {
-                    Queue<QueensResult> resultQueue = Jobs.calculatedResultsByDimensions.get(e.getKey());
+                    Queue<QueensResult> resultQueue = ghost.getJobs().getCalculatedResultsByDimensions().get(e.getKey());
                     if (resultQueue != null) {
                         String status;
-                        if (e.getKey() == Jobs.currentActiveDim.get()){
+                        if (e.getKey() == ghost.getJobs().getCurrentActiveDimension().get()){
                             status = "active";
                         }
                         else if (e.getValue().size() == 0 && resultQueue.size() > 0){
@@ -88,32 +87,34 @@ public class JobService {
 
     @Async
     // move to job
-    public void startWorkForDimension(int dimension) {
+    public void startWorkForDimension(Ghost ghost, int dimension) {
         Queue<QueensResult> resultsByDimension = new ConcurrentLinkedQueue<>();
 
-        if (Jobs.calculatedResultsByDimensions.putIfAbsent(dimension, resultsByDimension) != null) {
+        Jobs ghostJobs = ghost.getJobs();
+
+        if (ghost.getJobs().getCalculatedResultsByDimensions().putIfAbsent(dimension, resultsByDimension) != null) {
             logger.info("Work for dimension has been already started: {}", dimension);
 
-            if (Jobs.finishedJobs.contains(dimension)) {
+            if (ghost.getJobs().getFinishedJobs().contains(dimension)) {
                 logger.error("Work for dimension finished: {}", dimension);
             }
             else {
                 logger.info("Resuming for dimension has been already started: {}", dimension);
-                Jobs.currentActiveDim.set(dimension);
+                ghost.getJobs().getCurrentActiveDimension().set(dimension);
             }
             return;
         }
 
-        Jobs.currentActiveDim.set(dimension);
+        ghostJobs.getCurrentActiveDimension().set(dimension);
         logger.info("Starting work for dimension {}", dimension);
 
-        Jobs.jobsByDimensions.putIfAbsent(dimension, new ConcurrentLinkedQueue<>());
-        Queue<QueensJob> jobs = Jobs.jobsByDimensions.get(dimension);
+        ghostJobs.getJobsByDimensions().putIfAbsent(dimension, new ConcurrentLinkedQueue<>());
+        Queue<QueensJob> jobs = ghostJobs.getJobsByDimensions().get(dimension);
 
-        Queue<QueensResult> results = Jobs.calculatedResultsByDimensions.get(dimension);
+        Queue<QueensResult> results = ghostJobs.getCalculatedResultsByDimensions().get(dimension);
 
         logger.info("Started consuming regular queue for dimension {}", dimension);
-        consumeQueue(dimension, jobs, results);
+        consumeQueue(ghost, dimension, jobs, results);
 
         results.forEach(qr -> {
             if (qr.getResults() != null) {
@@ -124,7 +125,7 @@ public class JobService {
 
 
         while (true) {
-            Optional<Queue<QueensJob>> stolenJobsOptional = jobStealingService.stealJobs(dimension);
+            Optional<Queue<QueensJob>> stolenJobsOptional = jobStealingService.stealJobs(ghost, dimension);
             if (!stolenJobsOptional.isPresent()) {
                 break;
             }
@@ -136,43 +137,43 @@ public class JobService {
             }
 
             logger.info("Starting consuming stolen jobs! for dimension {}", dimension);
-            consumeQueue(dimension, jobs, results);
+            consumeQueue(ghost, dimension, jobs, results);
         }
 
         logger.info("Finished work for dimension {}", dimension);
-        Jobs.finishedJobs.add(dimension);
-        Jobs.currentActiveDim.set(-1);
+        ghostJobs.getFinishedJobs().add(dimension);
+        ghostJobs.getCurrentActiveDimension().set(-1);
 
 //        QueensResultBroadcast queensResultBroadcast = new QueensResultBroadcast(Configuration.id, dimension, new ArrayList<>(results));
 //        logger.info("Broadcasting results for dimension {}. Result count = {}", dimension, results.size());
 //        routingService.broadcastMessage(queensResultBroadcast, Methods.QUEENS_RESULT_BROADCAST);
 
-        broadcastCalculatedResults(dimension);
+        broadcastCalculatedResults(ghost, dimension);
 
-        Jobs.collectedResultsByDimensions.putIfAbsent(dimension, new ConcurrentHashMap<>());
-        Map<Integer, List<Integer[]>> transformedResults = Jobs.collectedResultsByDimensions.get(dimension);
+        ghostJobs.getCollectedResultsByDimensions().putIfAbsent(dimension, new ConcurrentHashMap<>());
+        Map<Integer, List<Integer[]>> transformedResults = ghostJobs.getCollectedResultsByDimensions().get(dimension);
 
         results.forEach(qr -> transformedResults.put(qr.getQueensJob().getJobId(), qr.getResults()));
     }
 
-    public void broadcastCalculatedResultsForAllUnfinishedJobs() {
-        Jobs.calculatedResultsByDimensions.forEach((dim, results) -> {
-            if (!Jobs.finishedJobs.contains(dim)) {
-                // it means that job is paused
-                broadcastCalculatedResults(dim);
-            }
-        });
-    }
+//    public void broadcastCalculatedResultsForAllUnfinishedJobs() {
+//        Jobs.calculatedResultsByDimensions.forEach((dim, results) -> {
+//            if (!Jobs.finishedJobs.contains(dim)) {
+//                // it means that job is paused
+//                broadcastCalculatedResults(dim);
+//            }
+//        });
+//    }
 
-    public void broadcastCalculatedResults(int dimension) {
-        Queue<QueensResult> results = Jobs.calculatedResultsByDimensions.get(dimension);
-        QueensResultBroadcast queensResultBroadcast = new QueensResultBroadcast(Configuration.id, dimension, new ArrayList<>(results));
+    public void broadcastCalculatedResults(Ghost ghost, int dimension) {
+        Queue<QueensResult> results = ghost.getJobs().getCalculatedResultsByDimensions().get(dimension);
+        QueensResultBroadcast queensResultBroadcast = new QueensResultBroadcast(ghost.getConfiguration().getId(), dimension, new ArrayList<>(results));
         logger.info("Broadcasting results for dimension {}. Result count = {}", dimension, results.size());
-        routingService.broadcastMessage(queensResultBroadcast, Methods.QUEENS_RESULT_BROADCAST);
+        routingService.broadcastMessage(ghost, queensResultBroadcast, Methods.QUEENS_RESULT_BROADCAST);
     }
 
 
-    public void consumeQueue(int dimension, Queue<QueensJob> jobsQueue, Queue<QueensResult> resultQueue){
+    public void consumeQueue(Ghost ghost, int dimension, Queue<QueensJob> jobsQueue, Queue<QueensResult> resultQueue){
 //        if (jobsQueue == null) {
 //            logger.warn("Queue is null. Nothing to consme {}", dimension);
 //            return;
@@ -180,7 +181,7 @@ public class JobService {
         Random rnd = new Random();
         while (!jobsQueue.isEmpty()) {
 
-            if (Jobs.currentActiveDim.get() != dimension) {
+            if (ghost.getJobs().getCurrentActiveDimension().get() != dimension) {
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
@@ -199,9 +200,9 @@ public class JobService {
     }
 
 
-    public void addBroadcastFinishedResults(Integer dimension, List<QueensResult> queensResults) {
-        Jobs.collectedResultsByDimensions.putIfAbsent(dimension, new ConcurrentHashMap<>());
-        Map<Integer, List<Integer[]>> results = Jobs.collectedResultsByDimensions.get(dimension);
+    public void addBroadcastFinishedResults(Ghost ghost, Integer dimension, List<QueensResult> queensResults) {
+        ghost.getJobs().getCollectedResultsByDimensions().putIfAbsent(dimension, new ConcurrentHashMap<>());
+        Map<Integer, List<Integer[]>> results = ghost.getJobs().getCollectedResultsByDimensions().get(dimension);
 
         queensResults.forEach(qr -> {
             results.put(qr.getQueensJob().getJobId(), qr.getResults());
@@ -209,17 +210,19 @@ public class JobService {
     }
 
 
-    public Optional<List<Integer[]>> result(int dimension) {
+    public Optional<List<Integer[]>> result(Ghost ghost, int dimension) {
 
-        int maxJobsByDimension = queensService.getMaxJobNumberForDimension(dimension);
-        if (Jobs.collectedResultsByDimensions.get(dimension) != null) {
-            if (Jobs.collectedResultsByDimensions.get(dimension).size() == maxJobsByDimension) {
-                return Optional.of(Jobs.collectedResultsByDimensions.get(dimension).values().stream()
+        Jobs ghostJobs = ghost.getJobs();
+
+        int maxJobsByDimension = queensService.getMaxJobNumberForDimension(ghost, dimension);
+        if (ghostJobs.getCollectedResultsByDimensions().get(dimension) != null) {
+            if (ghostJobs.getCollectedResultsByDimensions().get(dimension).size() == maxJobsByDimension) {
+                return Optional.of(ghostJobs.getCollectedResultsByDimensions().get(dimension).values().stream()
                         .flatMap(Collection::stream)
                         .collect(Collectors.toList()));
             }
             else {
-                logger.warn("Job for dimenison {} has not been finished. Required: {}, Curremt: {}", dimension, maxJobsByDimension, Jobs.collectedResultsByDimensions.get(dimension).size());
+                logger.warn("Job for dimenison {} has not been finished. Required: {}, Curremt: {}", dimension, maxJobsByDimension, ghostJobs.getCollectedResultsByDimensions().get(dimension).size());
             }
         }
         else {
@@ -230,40 +233,40 @@ public class JobService {
     }
 
 
-    public boolean pause() {
+    public boolean pause(Ghost ghost) {
         logger.info("Paused all job!");
-        Jobs.currentActiveDim.set(-1);
-        BroadcastMessage<String> pauseBroadcastMessage = new BroadcastMessage<>(Configuration.id, UUID.randomUUID().toString());
-        routingService.broadcastMessage(pauseBroadcastMessage, Methods.QUEENS_PAUSE);
+        ghost.getJobs().getCurrentActiveDimension().set(-1);
+        BroadcastMessage<String> pauseBroadcastMessage = new BroadcastMessage<>(ghost.getConfiguration().getId(), UUID.randomUUID().toString());
+        routingService.broadcastMessage(ghost, pauseBroadcastMessage, Methods.QUEENS_PAUSE);
         return true;
     }
 
 
-    public void putStatusMessage(StatusMessage statusMessage) {
+    public void putStatusMessage(Ghost ghost, StatusMessage statusMessage) {
 //        Map<Integer, List<JobState>> jobStatesByNode = new ConcurrentHashMap<>();
 //
 //        if (jobStatesByRequestId.putIfAbsent(statusMessage.getStatusRequestId(), jobStatesByNode) != null) {
 //            jobStatesByNode = jobStatesByRequestId.get(statusMessage.getStatusRequestId());
 //        }
 
-        Map<Integer, List<JobState>> jobStatesByNode = jobStatesByRequestId.get(statusMessage.getStatusRequestId());
+        Map<Integer, List<JobState>> jobStatesByNode = ghost.getJobs().getJobStatesByRequestId().get(statusMessage.getStatusRequestId());
         jobStatesByNode.put(statusMessage.getSender(), statusMessage.getJobStates());
 
         logger.info("Added status message from {} with request id {}", statusMessage.getSender(), statusMessage.getStatusRequestId());
     }
 
-    public Map<Integer, String> getStatus() {
+    public Map<Integer, String> getStatus(Ghost ghost) {
         String statusRequestId = UUID.randomUUID().toString();
 
         Map<Integer, List<JobState>> jobsStatesByNodes = new ConcurrentHashMap<>();
-        jobStatesByRequestId.put(statusRequestId, jobsStatesByNodes);
+        ghost.getJobs().getJobStatesByRequestId().put(statusRequestId, jobsStatesByNodes);
 
-        int sentToNodes = Network.maxNodeInSystem;
+        int sentToNodes = ghost.getNetwork().getMaxNodeInSystem().get();
 
         IntStream.rangeClosed(1, sentToNodes)
-                .filter(nodeId -> nodeId != Configuration.id)
-                .mapToObj(nodeId -> new StatusRequestMessage(Configuration.id, nodeId, statusRequestId))
-                .forEach(message -> routingService.dispatchMessage(message, Methods.QUEENS_STATUS));
+                .filter(nodeId -> nodeId != ghost.getConfiguration().getId())
+                .mapToObj(nodeId -> new StatusRequestMessage(ghost.getConfiguration().getId(), nodeId, statusRequestId))
+                .forEach(message -> routingService.dispatchMessage(ghost, message, Methods.QUEENS_STATUS));
 
 
         while (true) {

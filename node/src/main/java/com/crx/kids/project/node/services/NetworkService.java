@@ -2,10 +2,7 @@ package com.crx.kids.project.node.services;
 
 import com.crx.kids.project.common.CheckInResponse;
 import com.crx.kids.project.common.util.Result;
-import com.crx.kids.project.node.common.Configuration;
-import com.crx.kids.project.node.common.CriticalSection;
-import com.crx.kids.project.node.common.Jobs;
-import com.crx.kids.project.node.common.Network;
+import com.crx.kids.project.node.common.*;
 import com.crx.kids.project.node.endpoints.Methods;
 import com.crx.kids.project.node.entities.CriticalSectionToken;
 import com.crx.kids.project.node.entities.QueensJob;
@@ -50,24 +47,29 @@ public class NetworkService {
     private CriticalSectionService criticalSectionService;
 
     @EventListener(ApplicationReadyEvent.class)
-    public void connectToBootstrap() {
-        Optional<CheckInResponse> checkInResponseOptional = bootstrapService.checkIn(Configuration.bootstrap, Configuration.myself);
+    public void connectToBootstrap() { // this is only done on host Ghost
+        Optional<CheckInResponse> checkInResponseOptional = bootstrapService.checkIn(Node.bootstrap, Node.myself);
+
+        Ghost host = new Ghost();
+
+
 
         if (checkInResponseOptional.isPresent()) {
             logger.info("CheckIn response {}", checkInResponseOptional.get());
 
-            Configuration.id = checkInResponseOptional.get().getId();
-            Network.maxNodeInSystem = Configuration.id;
+            host.getConfiguration().setId(checkInResponseOptional.get().getId());
 
-            Network.firstKnownNode = checkInResponseOptional.get().getNodeInfo();
+            host.getNetwork().getMaxNodeInSystem().set(host.getConfiguration().getId());
+
+            host.getNetwork().setFirstKnownNode(checkInResponseOptional.get().getNodeInfo());
 
             // join network,
-            if (Network.firstKnownNode != null) {
-                int receiver = RoutingUtils.darah(Configuration.id);
-                NewbieJoinMessage newbieJoinMessage = new NewbieJoinMessage(Configuration.id, receiver, Configuration.myself);
+            if (host.getNetwork().getFirstKnownNode() != null) {
+                int receiver = RoutingUtils.darah(host.getConfiguration().getId());
+                NewbieJoinMessage newbieJoinMessage = new NewbieJoinMessage(host.getConfiguration().getId(), receiver, Node.myself);
                 // instead of calculating next hop, next hop is firsKnownNode
 
-                Result joinResult = nodeGateway.send(newbieJoinMessage, Network.firstKnownNode, Methods.NEWBIE_JOIN);
+                Result joinResult = nodeGateway.send(newbieJoinMessage, host.getNetwork().getFirstKnownNode(), Methods.NEWBIE_JOIN);
 
                 if (joinResult.isError()) {
                     logger.error("Received error response. Exiting.");
@@ -80,11 +82,11 @@ public class NetworkService {
             System.exit(0);
         }
 
-        if (Configuration.id == 1) {
-            CriticalSection.token = new CriticalSectionToken();
-            CriticalSection.token.getQueue();
-            CriticalSection.token.getSuzukiKasamiNodeMap();
-            CriticalSection.tokenIdle.set(true);
+        if (host.getConfiguration().getId() == 1) {
+            host.getCriticalSection().setToken(new CriticalSectionToken());
+            host.getCriticalSection().getToken().getQueue();
+            host.getCriticalSection().getToken().getSuzukiKasamiNodeMap();
+            host.getCriticalSection().getTokenIdle().set(true);
             logger.info("TOKEND ASSIGNED TO NODE 1");
         }
 
@@ -92,37 +94,37 @@ public class NetworkService {
     }
 
 
-    public void newbieJoin(NewbieJoinMessage newbieJoinMessage) {
+    public void newbieJoin(Ghost ghost, NewbieJoinMessage newbieJoinMessage) {
         logger.info("Received newbie join message {}", newbieJoinMessage);
 
         // message is for me!
         logger.info("Local handling newbie join message {}", newbieJoinMessage);
 
         NewbieAcceptedMessage newbieAcceptedMessage = new NewbieAcceptedMessage();
-        newbieAcceptedMessage.setSender(Configuration.id);
+        newbieAcceptedMessage.setSender(ghost.getConfiguration().getId());
         newbieAcceptedMessage.setReceiver(newbieJoinMessage.getSender());
-        newbieAcceptedMessage.setSecondNeighbour(new FullNodeInfo(Configuration.id, Configuration.myself));
+        newbieAcceptedMessage.setSecondNeighbour(new FullNodeInfo(ghost.getConfiguration().getId(), Node.myself));
 
-        if (Network.neighbours.size() > 0) {
-            Network.configurationLock.readLock().lock();
+        if (ghost.getNetwork().getRoutingTable().size() > 0) {
+            ghost.getNetwork().configurationLock.readLock().lock();
             try {
                 // even numbers are connected to second smallest neighbour
                 if (newbieJoinMessage.getSender() % 2 == 0) {
-                    newbieAcceptedMessage.setFirstNeighbour(Network.secondSmallestNeighbour);
+                    newbieAcceptedMessage.setFirstNeighbour(ghost.getNetwork().getSecondSmallestNeighbour());
                 } else { // odd numbers are connected to smallest neighbour
-                    newbieAcceptedMessage.setFirstNeighbour(Network.firstSmallestNeighbour);
+                    newbieAcceptedMessage.setFirstNeighbour(ghost.getNetwork().getFirstSmallestNeighbour());
                 }
             } finally {
-                Network.configurationLock.readLock().unlock();
+                ghost.getNetwork().configurationLock.readLock().unlock();
             }
         }
         else {
-            newbieAcceptedMessage.setFirstNeighbour(new FullNodeInfo(Configuration.id, Configuration.myself));
+            newbieAcceptedMessage.setFirstNeighbour(new FullNodeInfo(ghost.getConfiguration().getId(), Node.myself));
         }
 
-        newbieAcceptedMessage.setCurrentlyActiveDim(Jobs.currentActiveDim.get());
-        newbieAcceptedMessage.setCollectedResults(Jobs.collectedResultsByDimensions);
-        newbieAcceptedMessage.setFinishedJobs(Jobs.finishedJobs);
+        newbieAcceptedMessage.setCurrentlyActiveDim(ghost.getJobs().getCurrentActiveDimension().get());
+        newbieAcceptedMessage.setCollectedResults(ghost.getJobs().getCollectedResultsByDimensions());
+        newbieAcceptedMessage.setFinishedJobs(ghost.getJobs().getFinishedJobs());
 
         Result result = nodeGateway.send(newbieAcceptedMessage, newbieJoinMessage.getNewbie(), Methods.NEWBIE_ACCEPTED);
 //        RestTemplate restTemplate = new RestTemplate();
@@ -131,24 +133,24 @@ public class NetworkService {
     }
 
 
-    public void newbieAccepted(NewbieAcceptedMessage newbieAcceptedMessage) {
+    public void newbieAccepted(Ghost ghost, NewbieAcceptedMessage newbieAcceptedMessage) {
         logger.info("Newbie accepted with two neighbours {} and {}", newbieAcceptedMessage.getFirstNeighbour(), newbieAcceptedMessage.getSecondNeighbour());
 
-        Network.configurationLock.writeLock().lock();
+        ghost.getNetwork().configurationLock.writeLock().lock();
         try {
-            Network.neighbours.put(newbieAcceptedMessage.getFirstNeighbour().getId(), newbieAcceptedMessage.getFirstNeighbour());
-            Network.neighbours.put(newbieAcceptedMessage.getSecondNeighbour().getId(), newbieAcceptedMessage.getSecondNeighbour());
+            ghost.getNetwork().getRoutingTable().put(newbieAcceptedMessage.getFirstNeighbour().getId(), newbieAcceptedMessage.getFirstNeighbour());
+            ghost.getNetwork().getRoutingTable().put(newbieAcceptedMessage.getSecondNeighbour().getId(), newbieAcceptedMessage.getSecondNeighbour());
 
-            Network.firstSmallestNeighbour = newbieAcceptedMessage.getFirstNeighbour().getId() < newbieAcceptedMessage.getSecondNeighbour().getId() ? newbieAcceptedMessage.getFirstNeighbour() : newbieAcceptedMessage.getSecondNeighbour();
-            Network.secondSmallestNeighbour = newbieAcceptedMessage.getFirstNeighbour().getId() > newbieAcceptedMessage.getSecondNeighbour().getId() ? newbieAcceptedMessage.getFirstNeighbour() : newbieAcceptedMessage.getSecondNeighbour();
+            ghost.getNetwork().setFirstSmallestNeighbour(newbieAcceptedMessage.getFirstNeighbour().getId() < newbieAcceptedMessage.getSecondNeighbour().getId() ? newbieAcceptedMessage.getFirstNeighbour() : newbieAcceptedMessage.getSecondNeighbour());
+            ghost.getNetwork().setSecondSmallestNeighbour(newbieAcceptedMessage.getFirstNeighbour().getId() > newbieAcceptedMessage.getSecondNeighbour().getId() ? newbieAcceptedMessage.getFirstNeighbour() : newbieAcceptedMessage.getSecondNeighbour());
         }
         finally {
-            Network.configurationLock.writeLock().unlock();
+            ghost.getNetwork().configurationLock.writeLock().unlock();
         }
 
         newbieAcceptedMessage.getCollectedResults().forEach((dim, jobMap) -> {
-            Jobs.collectedResultsByDimensions.put(dim, new ConcurrentHashMap<>());
-            Map<Integer, List<Integer[]>> jobs = Jobs.collectedResultsByDimensions.get(dim);
+            ghost.getJobs().getCollectedResultsByDimensions().put(dim, new ConcurrentHashMap<>());
+            Map<Integer, List<Integer[]>> jobs = ghost.getJobs().getCollectedResultsByDimensions().get(dim);
 
             jobMap.forEach((jobId, results) -> {
                 jobs.put(jobId, results);
@@ -156,60 +158,60 @@ public class NetworkService {
         });
 
 //        Jobs.currentActiveDim.set(newbieAcceptedMessage.getCurrentlyActiveDim());
-        Jobs.finishedJobs.addAll(newbieAcceptedMessage.getFinishedJobs());
+        ghost.getJobs().getFinishedJobs().addAll(newbieAcceptedMessage.getFinishedJobs());
 
         if (newbieAcceptedMessage.getCurrentlyActiveDim() != -1) {
-            jobService.startWorkForDimension(newbieAcceptedMessage.getCurrentlyActiveDim());
+            jobService.startWorkForDimension(ghost, newbieAcceptedMessage.getCurrentlyActiveDim());
         }
 
-        Network.neighbours.forEach( (receiver, nodeInfo) -> {
-            AlterRoutingTableMessage alterRoutingTableMessage = new AlterRoutingTableMessage(Configuration.id, receiver, false, Configuration.myself);
+        ghost.getNetwork().getRoutingTable().forEach( (receiver, nodeInfo) -> {
+            AlterRoutingTableMessage alterRoutingTableMessage = new AlterRoutingTableMessage(ghost.getConfiguration().getId(), receiver, false, Node.myself);
             nodeGateway.send(alterRoutingTableMessage, nodeInfo, Methods.ALTER_NEIGHBOURS);
         });
     }
 
-    public void alterRoutingTable(AlterRoutingTableMessage alterRoutingTableMessage) {
+    public void alterRoutingTable(Ghost ghost, AlterRoutingTableMessage alterRoutingTableMessage) {
         logger.info("Altering routing table with {} : {}", alterRoutingTableMessage.getSender(), alterRoutingTableMessage.getNodeInfo());
 
         FullNodeInfo newNode = new FullNodeInfo(alterRoutingTableMessage.getSender(), alterRoutingTableMessage.getNodeInfo());
 
-        Network.configurationLock.writeLock().lock();
+        ghost.getNetwork().configurationLock.writeLock().lock();
         try {
-            if (Network.firstSmallestNeighbour == null) {
-                Network.firstSmallestNeighbour = newNode;
+            if (ghost.getNetwork().getFirstSmallestNeighbour() == null) {
+                ghost.getNetwork().setFirstSmallestNeighbour(newNode);
                 logger.info("Set 1st smallest neighbour {}", newNode);
 
             }
-            if (Network.secondSmallestNeighbour == null) {
-                Network.secondSmallestNeighbour = newNode;
+            if (ghost.getNetwork().getSecondSmallestNeighbour() == null) {
+                ghost.getNetwork().setSecondSmallestNeighbour(newNode);
                 logger.info("Set 2nd smallest neighbour {}", newNode);
             }
 
-            if (newNode.getId() == Network.firstSmallestNeighbour.getId()) {
-                Network.firstSmallestNeighbour = newNode;
+            if (newNode.getId() == ghost.getNetwork().getFirstSmallestNeighbour().getId()) {
+                ghost.getNetwork().setFirstSmallestNeighbour(newNode);
                 logger.info("Replaced 1st smallest neighbour {}", newNode);
             }
-            else if (newNode.getId() == Network.secondSmallestNeighbour.getId()) {
-                Network.secondSmallestNeighbour = newNode;
+            else if (newNode.getId() == ghost.getNetwork().getSecondSmallestNeighbour().getId()) {
+                ghost.getNetwork().setSecondSmallestNeighbour(newNode);
                 logger.info("Replaced 2nd smallest neighbour {}", newNode);
             }
 
-            if (newNode.getId() < Network.firstSmallestNeighbour.getId()) {
-                Network.secondSmallestNeighbour = Network.firstSmallestNeighbour;
-                Network.firstSmallestNeighbour = newNode;
+            if (newNode.getId() < ghost.getNetwork().getFirstSmallestNeighbour().getId()) {
+                ghost.getNetwork().setSecondSmallestNeighbour(ghost.getNetwork().getFirstSmallestNeighbour());
+                ghost.getNetwork().setFirstSmallestNeighbour(newNode);
                 logger.info("Replaced 1st and 2nd smallest nodes {}", newNode);
             }
-            else if (newNode.getId() < Network.secondSmallestNeighbour.getId()) {
-                Network.firstSmallestNeighbour = newNode;
-                logger.info("Replaced 2nd smallest node {}", newNode);
+            else if (newNode.getId() < ghost.getNetwork().getSecondSmallestNeighbour().getId()) {
+                ghost.getNetwork().setSecondSmallestNeighbour(newNode);
+                logger.info("Replaced 2nd smallest node {}", newNode); // TODO: Check if first smalles should be set
             }
 
-            logger.info("1st = {},  2nd = {}", Network.firstSmallestNeighbour, Network.secondSmallestNeighbour);
+            logger.info("1st = {},  2nd = {}", ghost.getNetwork().getFirstSmallestNeighbour(), ghost.getNetwork().getSecondSmallestNeighbour());
 
-            Network.neighbours.put(newNode.getId(), newNode);
+            ghost.getNetwork().getRoutingTable().put(newNode.getId(), newNode);
         }
         finally {
-            Network.configurationLock.writeLock().unlock();
+            ghost.getNetwork().configurationLock.writeLock().unlock();
         }
     }
 

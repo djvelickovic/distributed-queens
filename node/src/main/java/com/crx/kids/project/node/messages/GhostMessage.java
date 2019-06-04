@@ -6,7 +6,7 @@ import com.crx.kids.project.node.entities.QueensJob;
 import java.util.Map;
 import java.util.Queue;
 
-public class GhostMessage extends Message {
+public class GhostMessage extends DirectMessage {
     private Map<Integer, NodeInfo> routingTable;
 
     private Map<Integer, Queue<QueensJob>> unfinishedJobsForDimension;

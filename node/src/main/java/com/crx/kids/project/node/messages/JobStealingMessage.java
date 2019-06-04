@@ -1,6 +1,6 @@
 package com.crx.kids.project.node.messages;
 
-public class JobStealingMessage extends Message {
+public class JobStealingMessage extends DirectMessage {
 
     private int dimension;
 

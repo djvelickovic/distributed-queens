@@ -2,7 +2,7 @@ package com.crx.kids.project.node.messages;
 
 import java.util.List;
 
-public class StatusMessage extends Message {
+public class StatusMessage extends DirectMessage {
 
     private List<JobState> jobStates;
     private String statusRequestId;

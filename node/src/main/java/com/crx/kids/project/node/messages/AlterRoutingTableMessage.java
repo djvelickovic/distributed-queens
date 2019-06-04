@@ -2,7 +2,7 @@ package com.crx.kids.project.node.messages;
 
 import com.crx.kids.project.common.NodeInfo;
 
-public class AlterRoutingTableMessage extends Message { // not broadcast, nodeId is same as sender id
+public class AlterRoutingTableMessage extends DirectMessage { // not broadcast, nodeId is same as sender id
     private boolean ghost;
     private NodeInfo nodeInfo;
 

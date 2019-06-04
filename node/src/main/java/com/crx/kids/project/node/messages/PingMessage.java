@@ -1,6 +1,6 @@
 package com.crx.kids.project.node.messages;
 
-public class PingMessage extends Message {
+public class PingMessage extends DirectMessage {
 
     public PingMessage() {
     }

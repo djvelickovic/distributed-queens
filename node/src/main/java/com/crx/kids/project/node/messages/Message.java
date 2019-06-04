@@ -6,16 +6,14 @@ import java.util.List;
 public abstract class Message {
 
     protected int sender;
-    protected int receiver;
-    private List<Trace> trace;
+    protected List<Trace> trace;
 
     public Message() {
     }
 
 
-    public Message(int sender, int receiver) {
+    public Message(int sender) {
         this.sender = sender;
-        this.receiver = receiver;
     }
 
     public int getSender() {
@@ -24,14 +22,6 @@ public abstract class Message {
 
     public void setSender(int sender) {
         this.sender = sender;
-    }
-
-    public int getReceiver() {
-        return receiver;
-    }
-
-    public void setReceiver(int receiver) {
-        this.receiver = receiver;
     }
 
     public List<Trace> getTrace() {
@@ -53,7 +43,6 @@ public abstract class Message {
     public String toString() {
         return "Message{" +
                 "sender=" + sender +
-                ", receiver=" + receiver +
                 ", trace=" + trace +
                 '}';
     }

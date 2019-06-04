@@ -1,6 +1,6 @@
 package com.crx.kids.project.node.messages;
 
-public class StatusRequestMessage extends Message {
+public class StatusRequestMessage extends DirectMessage {
 
     private String statusRequestId;
 

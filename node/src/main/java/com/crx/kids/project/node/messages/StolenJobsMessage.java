@@ -4,7 +4,7 @@ import com.crx.kids.project.node.entities.QueensJob;
 
 import java.util.List;
 
-public class StolenJobsMessage extends Message {
+public class StolenJobsMessage extends DirectMessage {
 
     private int dimension;
     private List<QueensJob> stolenJobs;

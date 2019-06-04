@@ -1,6 +1,7 @@
 package com.crx.kids.project.node.services;
 
 import com.crx.kids.project.node.common.Configuration;
+import com.crx.kids.project.node.common.Ghost;
 import com.crx.kids.project.node.common.Network;
 import com.crx.kids.project.node.endpoints.Methods;
 import com.crx.kids.project.node.entities.QueensJob;
@@ -20,11 +21,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class JobStealingService {
     private static final Logger logger = LoggerFactory.getLogger(JobStealingService.class);
 
-    private Map<Integer, Set<Integer>> askedNodesByDimension = new ConcurrentHashMap<>();
 
-//    private Map<Integer, Set<Integer>> asnweredNodesByDimension = new ConcurrentHashMap<>();
-
-    private Map<Integer, Queue<QueensJob>> stolenJobsByDimension = new ConcurrentHashMap<>();
 
     @Autowired
     private RoutingService routingService;
@@ -32,37 +29,37 @@ public class JobStealingService {
     @Autowired
     private QueensService queensService;
 
-    public void addStolenJobs(int from, int dimension, List<QueensJob> stolenJobs) {
+    public void addStolenJobs(Ghost ghost, int from, int dimension, List<QueensJob> stolenJobs) {
         logger.info("Collected {} Stolen Jobs from {}, for dim {}. Jobs {}", stolenJobs.size(), from, dimension, stolenJobs.toString());
-        askedNodesByDimension.get(dimension).add(from);
-        stolenJobsByDimension.get(dimension).addAll(stolenJobs);
+        ghost.getJobs().getAskedNodesByDimension().get(dimension).add(from);
+        ghost.getJobs().getStolenJobsByDimension().get(dimension).addAll(stolenJobs);
     }
 
 
-    public Optional<Integer> getRandomUnaskedNode(int dimension) {
+    public Optional<Integer> getRandomUnaskedNode(Ghost ghost, int dimension) {
 
         Random rnd = new Random();
 
-        Set<Integer> askedNodes = askedNodesByDimension.get(dimension);
-        askedNodes.add(Configuration.id);
+        Set<Integer> askedNodes = ghost.getJobs().getAskedNodesByDimension().get(dimension);
+        askedNodes.add(ghost.getConfiguration().getId());
 
         while (true) {
-            int genId = rnd.nextInt(Network.maxNodeInSystem) + 1;
+            int genId = rnd.nextInt(ghost.getNetwork().getMaxNodeInSystem().get()) + 1;
             if (!askedNodes.contains(genId)) {
                 return Optional.of(genId);
             }
-            if (askedNodes.size() >= Network.maxNodeInSystem) {
+            if (askedNodes.size() >= ghost.getNetwork().getMaxNodeInSystem().get()) {
                 return Optional.empty();
             }
         }
     }
 
-    public Optional<Queue<QueensJob>> stealJobs(int dimension) {
-        askedNodesByDimension.putIfAbsent(dimension, ConcurrentHashMap.newKeySet());
-        stolenJobsByDimension.putIfAbsent(dimension, new ConcurrentLinkedQueue<>());
+    public Optional<Queue<QueensJob>> stealJobs(Ghost ghost, int dimension) {
+        ghost.getJobs().getAskedNodesByDimension().putIfAbsent(dimension, ConcurrentHashMap.newKeySet());
+        ghost.getJobs().getStolenJobsByDimension().putIfAbsent(dimension, new ConcurrentLinkedQueue<>());
 //        asnweredNodesByDimension.putIfAbsent(dimension, ConcurrentHashMap.newKeySet());
 
-        Optional<Integer> rndUnaskedNode = getRandomUnaskedNode(dimension);
+        Optional<Integer> rndUnaskedNode = getRandomUnaskedNode(ghost, dimension);
 
         if (!rndUnaskedNode.isPresent()) {
             logger.info("All nodes are asked for jobs for dimension {}", dimension);
@@ -71,11 +68,11 @@ public class JobStealingService {
 
         logger.info("Stealing from {} for dimension {}", rndUnaskedNode.get(), dimension);
 
-        JobStealingMessage jobStealingMessage = new JobStealingMessage(Configuration.id, rndUnaskedNode.get(), dimension);
+        JobStealingMessage jobStealingMessage = new JobStealingMessage(ghost.getConfiguration().getId(), rndUnaskedNode.get(), dimension);
 
-        routingService.dispatchMessage(jobStealingMessage, Methods.JOB_STEALING_REQUEST);
+        routingService.dispatchMessage(ghost, jobStealingMessage, Methods.JOB_STEALING_REQUEST);
 
-        Set<Integer> answeredNodes = askedNodesByDimension.get(dimension);
+        Set<Integer> answeredNodes = ghost.getJobs().getAskedNodesByDimension().get(dimension);
 
         while (!answeredNodes.contains(rndUnaskedNode.get())) { // wait for response
             try {
@@ -86,7 +83,7 @@ public class JobStealingService {
             }
         }
 
-        Queue<QueensJob> stolenJobsQueue = stolenJobsByDimension.get(dimension);
+        Queue<QueensJob> stolenJobsQueue = ghost.getJobs().getStolenJobsByDimension().get(dimension);
 //        List<QueensJob> stolenJobs = new ArrayList<>();
 //
 //        while (!stolenJobsQueue.isEmpty()) {
@@ -96,10 +93,10 @@ public class JobStealingService {
     }
 
     @Async
-    public void sendStolenJobs(int node, int dimension) {
-        List<QueensJob> stolenJobs = queensService.pollHalfJobs(dimension);
-        StolenJobsMessage stolenJobsMessage = new StolenJobsMessage(Configuration.id, node, dimension, stolenJobs);
-        routingService.dispatchMessage(stolenJobsMessage, Methods.JOB_STEALING_COLLECTOR);
+    public void sendStolenJobs(Ghost ghost, int node, int dimension) {
+        List<QueensJob> stolenJobs = queensService.pollHalfJobs(ghost, dimension);
+        StolenJobsMessage stolenJobsMessage = new StolenJobsMessage(ghost.getConfiguration().getId(), node, dimension, stolenJobs);
+        routingService.dispatchMessage(ghost, stolenJobsMessage, Methods.JOB_STEALING_COLLECTOR);
     }
 
 }

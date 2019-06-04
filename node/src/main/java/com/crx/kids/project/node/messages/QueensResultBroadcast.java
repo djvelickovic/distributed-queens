@@ -41,7 +41,6 @@ public class QueensResultBroadcast extends BroadcastMessage<String> {
                 "dimension=" + dimension +
                 ", queensResults=" + queensResults.size() +
                 ", sender=" + sender +
-                ", receiver=" + receiver +
                 '}';
     }
 }

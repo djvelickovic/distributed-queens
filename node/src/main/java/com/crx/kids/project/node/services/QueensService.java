@@ -1,9 +1,7 @@
 package com.crx.kids.project.node.services;
 
 import com.crx.kids.project.common.util.Result;
-import com.crx.kids.project.node.common.Configuration;
-import com.crx.kids.project.node.common.Jobs;
-import com.crx.kids.project.node.common.Network;
+import com.crx.kids.project.node.common.Ghost;
 import com.crx.kids.project.node.endpoints.Methods;
 import com.crx.kids.project.node.entities.QueensJob;
 import com.crx.kids.project.node.entities.QueensResult;
@@ -27,11 +25,11 @@ public class QueensService {
     private RoutingService routingService;
 
 
-    public void addJobsForDimension(int dimension, List<QueensJob> jobs) {
+    public void addJobsForDimension(Ghost ghost, int dimension, List<QueensJob> jobs) {
         Queue<QueensJob> jobQueue = new ConcurrentLinkedQueue<>();
 
-        if (Jobs.jobsByDimensions.putIfAbsent(dimension, jobQueue) != null) {
-            jobQueue = Jobs.jobsByDimensions.get(dimension);
+        if (ghost.getJobs().getJobsByDimensions().putIfAbsent(dimension, jobQueue) != null) {
+            jobQueue = ghost.getJobs().getJobsByDimensions().get(dimension);
         }
 
         jobQueue.addAll(jobs);
@@ -39,9 +37,9 @@ public class QueensService {
 
 
 
-    public List<QueensJob> pollHalfJobs(int dimension) {
+    public List<QueensJob> pollHalfJobs(Ghost ghost, int dimension) {
 
-        Queue<QueensJob> jobQueue = Jobs.jobsByDimensions.get(dimension);
+        Queue<QueensJob> jobQueue = ghost.getJobs().getJobsByDimensions().get(dimension);
 
         if (jobQueue == null) {
             logger.error("There are no jobs for dimension {}", dimension);
@@ -60,12 +58,12 @@ public class QueensService {
     }
 
 
-    private List<QueensJob> pollJobs(int dimension, int maxJobs) {
+    private List<QueensJob> pollJobs(Ghost ghost, int dimension, int maxJobs) {
         if (maxJobs <= 0) {
             return new ArrayList<>();
         }
 
-        Queue<QueensJob> jobQueue = Jobs.jobsByDimensions.get(dimension);
+        Queue<QueensJob> jobQueue = ghost.getJobs().getJobsByDimensions().get(dimension);
 
         if (jobQueue == null) {
             logger.error("There are no jobs for dimension {}", dimension);
@@ -87,11 +85,11 @@ public class QueensService {
         return queensJobs;
     }
 
-    public void calculateJobsByDimension(int dimension) {
+    public void calculateJobsByDimension(Ghost ghost, int dimension) {
         Queue<QueensJob> queensJobs =  new ConcurrentLinkedQueue<>();
 
-        if (Jobs.jobsByDimensions.putIfAbsent(dimension, queensJobs) != null) {
-            Result schedResult = scheduleJobs(dimension, 0);
+        if (ghost.getJobs().getJobsByDimensions().putIfAbsent(dimension, queensJobs) != null) {
+            Result schedResult = scheduleJobs(ghost, dimension, 0);
             if (schedResult.isError()) {
                 logger.error("Error scheduling results for zero {}", schedResult.getError());
             }
@@ -99,7 +97,7 @@ public class QueensService {
             return;
         }
 
-        int jobs = getMaxJobNumberForDimension(dimension);
+        int jobs = getMaxJobNumberForDimension(ghost, dimension);
 
         List<QueensJob> jobList = IntStream.range(0, jobs)
                 .mapToObj(i -> new QueensJob(dimension, jobs, i))
@@ -112,31 +110,31 @@ public class QueensService {
         // send broadcast, and wait for nodes to request their parts, after all nodes are responded, send them their parts.
         // TODO: how do we know if all nodes responded?
 
-        Result schedResult = scheduleJobs(dimension, jobs);
+        Result schedResult = scheduleJobs(ghost, dimension, jobs);
 
         if (schedResult.isError()) {
             logger.error("Error scheduling results {}", schedResult.getError());
         }
     }
 
-    private Result scheduleJobs(int dimension, int maxJobs) {
+    private Result scheduleJobs(Ghost ghost, int dimension, int maxJobs) {
 
-        int maxNodeInSystem = Network.maxNodeInSystem;
+        int maxNodeInSystem = ghost.getNetwork().getMaxNodeInSystem().get();
         int jobsPerNode = maxJobs / maxNodeInSystem;
 
         IntStream.rangeClosed(1, maxNodeInSystem)
-                .filter(nodeId -> nodeId != Configuration.id)
+                .filter(nodeId -> nodeId != ghost.getConfiguration().getId())
                 .mapToObj(i -> {
-                    List<QueensJob> queensJobs = pollJobs(dimension, jobsPerNode);
-                    return new QueensJobsMessage(Configuration.id, i, dimension, queensJobs);
+                    List<QueensJob> queensJobs = pollJobs(ghost, dimension, jobsPerNode);
+                    return new QueensJobsMessage(ghost.getConfiguration().getId(), i, dimension, queensJobs);
                 })
-                .forEach(m -> routingService.dispatchMessage(m, Methods.QUEENS_JOBS));
+                .forEach(m -> routingService.dispatchMessage(ghost, m, Methods.QUEENS_JOBS));
 
         return Result.of(null);
     }
 
-    public int getMaxJobNumberForDimension(int dimension) {
-        int absMaxJobs = (int) (100 / Configuration.limit);
+    public int getMaxJobNumberForDimension(Ghost ghost, int dimension) {
+        int absMaxJobs = (int) (100 / ghost.getConfiguration().getLimit());
         int jobs = 1;
         int cnt = 0;
         while ((absMaxJobs > jobs * dimension) && dimension > cnt) {

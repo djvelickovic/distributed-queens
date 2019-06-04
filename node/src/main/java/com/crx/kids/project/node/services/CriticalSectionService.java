@@ -2,6 +2,7 @@ package com.crx.kids.project.node.services;
 
 import com.crx.kids.project.node.common.Configuration;
 import com.crx.kids.project.node.common.CriticalSection;
+import com.crx.kids.project.node.common.Ghost;
 import com.crx.kids.project.node.common.Network;
 import com.crx.kids.project.node.endpoints.Methods;
 import com.crx.kids.project.node.entities.CriticalSectionToken;
@@ -31,7 +32,7 @@ public class CriticalSectionService {
 
 
 
-    public int initiateSuzukiKasamiBroadcast(String path) {
+    public int initiateSuzukiKasamiBroadcast(Ghost ghost, String path) {
         int suzukiKasamiId;
         try {
             CriticalSection.criticalSectionLock.writeLock().lock();

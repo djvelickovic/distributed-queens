@@ -1,5 +1,6 @@
 package com.crx.kids.project.node.messages.newbie;
 
+import com.crx.kids.project.node.messages.DirectMessage;
 import com.crx.kids.project.node.messages.FullNodeInfo;
 import com.crx.kids.project.node.messages.Message;
 
@@ -7,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class NewbieAcceptedMessage extends Message {
+public class NewbieAcceptedMessage extends DirectMessage {
     // first must be smaller than second by id
     private FullNodeInfo firstNeighbour;
     private FullNodeInfo secondNeighbour;
