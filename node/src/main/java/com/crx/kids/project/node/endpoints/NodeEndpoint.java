@@ -1,6 +1,5 @@
 package com.crx.kids.project.node.endpoints;
 
-import com.crx.kids.project.node.common.Configuration;
 import com.crx.kids.project.node.common.Network;
 import com.crx.kids.project.node.messages.AlterRoutingTableMessage;
 import com.crx.kids.project.node.messages.BroadcastMessage;
@@ -36,44 +35,40 @@ public class NodeEndpoint {
 
     @PostMapping(path = "alter-neighbours", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResponse> alterNeighbours(@RequestBody AlterRoutingTableMessage alterRoutingTableMessage) {
-        if (alterRoutingTableMessage.getReceiver() != Configuration.id) {
-            routingService.dispatchMessage(alterRoutingTableMessage, Methods.ALTER_NEIGHBOURS);
-            return ResponseEntity.ok(new CommonResponse(CommonType.OK));
-        }
 
-        networkService.alterRoutingTable(alterRoutingTableMessage);
-        return ResponseEntity.ok(new CommonResponse(CommonType.OK));
+        return ResponseEntity.ok(
+                routingService.handle(alterRoutingTableMessage, Methods.ALTER_NEIGHBOURS, () -> {
+                    networkService.alterRoutingTable(alterRoutingTableMessage);
+                    return new CommonResponse(CommonType.OK);
+                }, ghostId -> {
+                    return new CommonResponse(CommonType.OK);
+                }));
     }
 
     @PostMapping(path = "newbie-join", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResponse> newbieConnect(@RequestBody NewbieJoinMessage newbieJoinMessage) {
 
-        if (newbieJoinMessage.getReceiver() != Configuration.id) {
-            routingService.dispatchMessage(newbieJoinMessage, Methods.NEWBIE_JOIN);
-            return ResponseEntity.ok(new CommonResponse(CommonType.OK));
-        }
-
-        networkService.newbieJoin(newbieJoinMessage);
-        CommonResponse commonResponse = new CommonResponse();
-        commonResponse.setType(CommonType.OK);
-        return ResponseEntity.ok().body(commonResponse);
+        return ResponseEntity.ok(
+                routingService.handle(newbieJoinMessage, Methods.NEWBIE_JOIN, () -> {
+                    networkService.newbieJoin(newbieJoinMessage);
+                    return new CommonResponse(CommonType.OK);
+                }, ghostId -> {
+                    return new CommonResponse(CommonType.OK);
+                }));
     }
 
     @PostMapping(path = "newbie-accepted", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResponse> newbieAccepted(@RequestBody NewbieAcceptedMessage newbieAcceptedMessage) {
         // NOTE: This should be direct message, so no routing will occur.
-        if (newbieAcceptedMessage.getReceiver() != Configuration.id) {
-            routingService.dispatchMessage(newbieAcceptedMessage, Methods.NEWBIE_ACCEPTED);
-            return ResponseEntity.ok(new CommonResponse(CommonType.OK));
-        }
 
-        networkService.newbieAccepted(newbieAcceptedMessage);
-
-        routingService.initiateBroadcast(Methods.BROADCAST_JOIN);
-
-        CommonResponse commonResponse = new CommonResponse();
-        commonResponse.setType(CommonType.OK);
-        return ResponseEntity.ok().body(commonResponse);
+        return ResponseEntity.ok(
+                routingService.handle(newbieAcceptedMessage, Methods.NEWBIE_ACCEPTED, () -> {
+                    networkService.newbieAccepted(newbieAcceptedMessage);
+                    routingService.initiateBroadcast(Methods.BROADCAST_JOIN);
+                    return new CommonResponse(CommonType.OK);
+                }, ghostId -> {
+                    return new CommonResponse(CommonType.OK);
+                }));
     }
 
     @PostMapping(path = "join-broadcast", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
@@ -112,12 +107,12 @@ public class NodeEndpoint {
     @PostMapping(path = "host-request", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResponse> hostRequest(@RequestBody GhostMessage ghostMessage) {
 
-        return ResponseEntity.ok(routingService.handle(ghostMessage, Methods.HOST_REQUEST, () -> {
-            networkService.handleHostRequest(ghostMessage);
-            return new CommonResponse(CommonType.OK);
-        }, ghostId -> {
-            logger.error("RECEIVED MESSAGE FOR GHOST {}", ghostId);
-            return new CommonResponse(CommonType.OK);
-        }));
+        return ResponseEntity.ok(
+                routingService.handle(ghostMessage, Methods.HOST_REQUEST, () -> {
+                    networkService.handleHostRequest(ghostMessage);
+                    return new CommonResponse(CommonType.OK);
+                }, ghostId -> {
+                    return new CommonResponse(CommonType.OK);
+                }));
     }
 }

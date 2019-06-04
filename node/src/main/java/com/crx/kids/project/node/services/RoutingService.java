@@ -223,6 +223,8 @@ public class RoutingService {
             return new CommonResponse(CommonType.OK);
         }
 
+        logger.error("GHOST: alter message for {}", ghostIdOptional.get());
+
         return ghostHandler.apply(ghostIdOptional.get());
     }
 
