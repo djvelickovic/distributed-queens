@@ -6,10 +6,7 @@ import com.crx.kids.project.node.common.Network;
 import com.crx.kids.project.node.endpoints.Methods;
 import com.crx.kids.project.node.entities.QueensJob;
 import com.crx.kids.project.node.entities.QueensResult;
-import com.crx.kids.project.node.messages.JobState;
-import com.crx.kids.project.node.messages.QueensResultBroadcast;
-import com.crx.kids.project.node.messages.StatusMessage;
-import com.crx.kids.project.node.messages.StatusRequestMessage;
+import com.crx.kids.project.node.messages.*;
 import com.crx.kids.project.node.utils.ThreadUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -146,16 +143,34 @@ public class JobService {
         Jobs.finishedJobs.add(dimension);
         Jobs.currentActiveDim.set(-1);
 
-        QueensResultBroadcast queensResultBroadcast = new QueensResultBroadcast(Configuration.id, dimension, new ArrayList<>(results));
-        logger.info("Broadcasting results for dimension {}. Result count = {}", dimension, results.size());
-        routingService.broadcastMessage(queensResultBroadcast, Methods.QUEENS_RESULT_BROADCAST);
+//        QueensResultBroadcast queensResultBroadcast = new QueensResultBroadcast(Configuration.id, dimension, new ArrayList<>(results));
+//        logger.info("Broadcasting results for dimension {}. Result count = {}", dimension, results.size());
+//        routingService.broadcastMessage(queensResultBroadcast, Methods.QUEENS_RESULT_BROADCAST);
+
+        broadcastCalculatedResults(dimension);
 
         Jobs.collectedResultsByDimensions.putIfAbsent(dimension, new ConcurrentHashMap<>());
         Map<Integer, List<Integer[]>> transformedResults = Jobs.collectedResultsByDimensions.get(dimension);
 
         results.forEach(qr -> transformedResults.put(qr.getQueensJob().getJobId(), qr.getResults()));
-
     }
+
+    public void broadcastCalculatedResultsForAllUnfinishedJobs() {
+        Jobs.calculatedResultsByDimensions.forEach((dim, results) -> {
+            if (!Jobs.finishedJobs.contains(dim)) {
+                // it means that job is paused
+                broadcastCalculatedResults(dim);
+            }
+        });
+    }
+
+    public void broadcastCalculatedResults(int dimension) {
+        Queue<QueensResult> results = Jobs.calculatedResultsByDimensions.get(dimension);
+        QueensResultBroadcast queensResultBroadcast = new QueensResultBroadcast(Configuration.id, dimension, new ArrayList<>(results));
+        logger.info("Broadcasting results for dimension {}. Result count = {}", dimension, results.size());
+        routingService.dispatchMessageNonAsync(queensResultBroadcast, Methods.QUEENS_RESULT_BROADCAST);
+    }
+
 
     public void consumeQueue(int dimension, Queue<QueensJob> jobsQueue, Queue<QueensResult> resultQueue){
 //        if (jobsQueue == null) {
@@ -218,7 +233,8 @@ public class JobService {
     public boolean pause() {
         logger.info("Paused all job!");
         Jobs.currentActiveDim.set(-1);
-        //
+        BroadcastMessage<String> pauseBroadcastMessage = new BroadcastMessage<>(Configuration.id, UUID.randomUUID().toString());
+        routingService.broadcastMessage(pauseBroadcastMessage, Methods.QUEENS_PAUSE);
         return true;
     }
 

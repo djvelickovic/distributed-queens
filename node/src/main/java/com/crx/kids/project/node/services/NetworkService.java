@@ -8,26 +8,26 @@ import com.crx.kids.project.node.common.Jobs;
 import com.crx.kids.project.node.common.Network;
 import com.crx.kids.project.node.endpoints.Methods;
 import com.crx.kids.project.node.entities.CriticalSectionToken;
+import com.crx.kids.project.node.entities.QueensJob;
 import com.crx.kids.project.node.messages.AlterRoutingTableMessage;
 import com.crx.kids.project.node.messages.FullNodeInfo;
+import com.crx.kids.project.node.messages.GhostMessage;
 import com.crx.kids.project.node.messages.newbie.NewbieAcceptedMessage;
 import com.crx.kids.project.node.messages.newbie.NewbieJoinMessage;
-import com.crx.kids.project.node.messages.response.CommonResponse;
-import com.crx.kids.project.node.utils.NetUtil;
 import com.crx.kids.project.node.utils.RoutingUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 @Service
 public class NetworkService {
@@ -45,6 +45,9 @@ public class NetworkService {
 
     @Autowired
     private JobService jobService;
+
+    @Autowired
+    private CriticalSectionService criticalSectionService;
 
     @EventListener(ApplicationReadyEvent.class)
     public void connectToBootstrap() {
@@ -208,5 +211,30 @@ public class NetworkService {
         finally {
             Network.configurationLock.writeLock().unlock();
         }
+    }
+
+    public void handleHostRequest(GhostMessage ghostMessage) {
+        logger.info("Received ghost message {}", ghostMessage);
+
+        criticalSectionService.submitProcedureForCriticalExecution(token -> {
+            if (ghostMessage.getStoppedJob() != -1) {
+                jobService.initiateJobForDimension(ghostMessage.getStoppedJob());
+            }
+        });
+
+
+        ghostMessage.getUnfinishedJobsForDimension().forEach((dim, jobQueue) -> {
+            Jobs.jobsByDimensions.putIfAbsent(dim, new ConcurrentLinkedQueue<>());
+            Queue<QueensJob> localJobQueue = Jobs.jobsByDimensions.get(dim);
+
+            // consuming queue
+            while (!jobQueue.isEmpty()) {
+                localJobQueue.add(jobQueue.poll());
+            }
+        });
+
+        logger.info("Routing table: {}", ghostMessage.getRoutingTable());
+
+        Network.ghostRoutingTables.put(ghostMessage.getSender(), ghostMessage.getRoutingTable());
     }
 }

@@ -8,6 +8,7 @@ import com.crx.kids.project.node.messages.BroadcastMessage;
 import com.crx.kids.project.node.services.CriticalSectionService;
 import com.crx.kids.project.node.services.JobService;
 import com.crx.kids.project.node.services.RoutingService;
+import com.crx.kids.project.node.services.StoppingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +36,9 @@ public class ControlEndpoint {
 
     @Autowired
     private RoutingService routingService;
+
+    @Autowired
+    private StoppingService stoppingService;
 
     @PostMapping(path = "start", consumes = MediaType.APPLICATION_JSON_UTF8_VALUE, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity start(@RequestBody DimensionsDTO dimensionsDTO) {
@@ -67,8 +71,7 @@ public class ControlEndpoint {
 
         criticalSectionService.submitProcedureForCriticalExecution(i -> {
             boolean pause = jobService.pause();
-            BroadcastMessage<String> pauseBroadcastMessage = new BroadcastMessage<>(Configuration.id, UUID.randomUUID().toString());
-            routingService.broadcastMessage(pauseBroadcastMessage, Methods.QUEENS_PAUSE);
+
             if (pause) {
                 logger.info("All jobs paused.");
             }
@@ -82,13 +85,9 @@ public class ControlEndpoint {
     @PostMapping(path = "stop", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity stop() {
 
-        boolean stop = jobService.stop();
-        if (stop) {
-            return ResponseEntity.ok(new ControlPlaneResponse("STOPPED", ""));
-        }
-        else {
-            return ResponseEntity.ok(new ControlPlaneResponse("ERROR", ""));
-        }
+        stoppingService.initiateStoppingPrcedure();
+
+        return ResponseEntity.ok(new ControlPlaneResponse("INITIATED", "Initiated stopping procedure."));
     }
 
 

@@ -4,6 +4,7 @@ import com.crx.kids.project.node.common.Configuration;
 import com.crx.kids.project.node.common.Network;
 import com.crx.kids.project.node.messages.AlterRoutingTableMessage;
 import com.crx.kids.project.node.messages.BroadcastMessage;
+import com.crx.kids.project.node.messages.GhostMessage;
 import com.crx.kids.project.node.messages.newbie.NewbieAcceptedMessage;
 import com.crx.kids.project.node.messages.newbie.NewbieJoinMessage;
 import com.crx.kids.project.node.messages.response.CommonResponse;
@@ -108,5 +109,15 @@ public class NodeEndpoint {
         return ResponseEntity.ok(new CommonResponse(CommonType.OK));
     }
 
+    @PostMapping(path = "host-request", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    public ResponseEntity<CommonResponse> hostRequest(@RequestBody GhostMessage ghostMessage) {
 
+        return ResponseEntity.ok(routingService.handle(ghostMessage, Methods.HOST_REQUEST, () -> {
+            networkService.handleHostRequest(ghostMessage);
+            return new CommonResponse(CommonType.OK);
+        }, ghostId -> {
+            logger.error("RECEIVED MESSAGE FOR GHOST {}", ghostId);
+            return new CommonResponse(CommonType.OK);
+        }));
+    }
 }

@@ -8,6 +8,8 @@ import com.crx.kids.project.node.messages.BroadcastMessage;
 import com.crx.kids.project.node.messages.FullNodeInfo;
 import com.crx.kids.project.node.messages.Message;
 import com.crx.kids.project.node.messages.Trace;
+import com.crx.kids.project.node.messages.response.CommonResponse;
+import com.crx.kids.project.node.messages.response.CommonType;
 import com.crx.kids.project.node.utils.RoutingUtils;
 import com.crx.kids.project.node.utils.ThreadUtil;
 import org.slf4j.Logger;
@@ -20,6 +22,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -146,6 +149,10 @@ public class RoutingService {
 
     @Async
     public void dispatchMessage(Message message, String path) {
+        dispatchMessageNonAsync(message, path);
+    }
+
+    public void dispatchMessageNonAsync(Message message, String path) {
         try {
             message.addTrace(new Trace(Configuration.id, "Rerouted."));
 
@@ -177,6 +184,7 @@ public class RoutingService {
     }
 
 
+
     private int maxCommonNumber(List<Integer> list1, List<Integer> list2) {
         int minSize = RoutingUtils.min(list1.size(), list2.size());
 
@@ -201,7 +209,22 @@ public class RoutingService {
         return maxCommonIndex;
     }
 
+    public CommonResponse handle(Message message, String method, Supplier<CommonResponse> myselfHandler, Function<Integer, CommonResponse> ghostHandler) {
+        int receiver = message.getReceiver();
+        if (receiver == Configuration.id) {
+            return myselfHandler.get();
+        }
 
+        Optional<Integer> ghostIdOptional = Network.ghostRoutingTables.keySet().stream().filter(ghostId -> ghostId == receiver).findAny();
+
+        if (!ghostIdOptional.isPresent()) {
+            // todo: route
+            executor.submit(() -> dispatchMessage(message, method));
+            return new CommonResponse(CommonType.OK);
+        }
+
+        return ghostHandler.apply(ghostIdOptional.get());
+    }
 
 
 }

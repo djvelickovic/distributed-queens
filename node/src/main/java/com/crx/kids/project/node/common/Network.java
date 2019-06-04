@@ -18,9 +18,11 @@ public class Network {
 
     public static final Map<Integer, NodeInfo> neighbours = new ConcurrentHashMap<>();
 
+    public static final Map<Integer, Map<Integer, NodeInfo>> ghostRoutingTables = new ConcurrentHashMap<>();
+
+
     public static FullNodeInfo firstSmallestNeighbour;
     public static FullNodeInfo secondSmallestNeighbour;
-
 
 
 

@@ -14,7 +14,7 @@ public class Methods {
     public static String ALTER_NEIGHBOURS = "node/alter-neighbours";
     public static String BROADCAST_JOIN = "node/join-broadcast";
     public static String BROADCAST_LEAVE = "node/leave-broadcast";
-
+    public static String HOST_REQUEST = "node/host-request";
 
     // CriticalSectionEndpoint
     public static String BROADCAST_CRITICAL_SECTION = "critical-section/broadcast";
@@ -31,6 +31,7 @@ public class Methods {
     public static final String JOB_STEALING_REQUEST = "job/stealing-request";
     public static final String JOB_STEALING_COLLECTOR = "job/stealing-collector";
     public static final String QUEENS_RESULT_BROADCAST = "job/queens-result-broadcast";
+
 
 
 }
