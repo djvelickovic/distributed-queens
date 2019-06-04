@@ -5,10 +5,12 @@ public class Methods {
 
     // TestEndpoint
     public static final String STATUS = "test/status";
+
     public static String PING = "test/ping";
 
 
     // NodeEndpoint
+    public static final String HOST_ACK = "node/host-ack";
     public static String NEWBIE_JOIN = "node/newbie-join";
     public static String NEWBIE_ACCEPTED = "node/newbie-accepted";
     public static String ALTER_NEIGHBOURS = "node/alter-neighbours";

@@ -119,8 +119,8 @@ public class NodeEndpoint {
     public ResponseEntity<CommonResponse> hostAck(@RequestBody PingMessage pingMessage) {
 
         return ResponseEntity.ok(
-                routingService.handle(pingMessage, Methods.HOST_REQUEST, routingService, () -> {
-                    stoppingService.handleAck(pingMessage);
+                routingService.handle(pingMessage, Methods.HOST_ACK, routingService, () -> {
+                    networkService.ack();
                     return new CommonResponse(CommonType.OK);
                 }));
     }

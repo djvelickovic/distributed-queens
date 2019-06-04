@@ -123,7 +123,7 @@ public class RoutingService {
                 message.addTrace(new Trace(Configuration.id, "Broadcast."));
 
                 List<Result> broadcastResults = Network.neighbours.entrySet().stream()
-//                        .filter(e -> !containTraceFor(e.getKey(), message))
+                        .filter(e -> !containTraceFor(e.getKey(), message))
                         .map(Map.Entry::getValue)
                         .map(nodeInfo -> nodeGateway.send(message, nodeInfo, path))
                         .collect(Collectors.toList());
@@ -217,6 +217,4 @@ public class RoutingService {
         routingService.dispatchMessage(message, method);
         return new CommonResponse(CommonType.OK);
     }
-
-
 }

@@ -16,6 +16,7 @@ import com.crx.kids.project.node.messages.HostMessage;
 import com.crx.kids.project.node.messages.newbie.NewbieAcceptedMessage;
 import com.crx.kids.project.node.messages.newbie.NewbieJoinMessage;
 import com.crx.kids.project.node.utils.RoutingUtils;
+import com.crx.kids.project.node.utils.ThreadUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,7 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 public class NetworkService {
@@ -160,7 +162,13 @@ public class NetworkService {
         });
     }
 
+
+    public static final AtomicBoolean lock = new AtomicBoolean(true);
+
     public void handleHostRequest(HostMessage hostMessage) {
+
+        lock.set(true);
+
         logger.info("Received ghost message {}", hostMessage);
 
         int oldHostId = Configuration.id;
@@ -184,6 +192,11 @@ public class NetworkService {
             }
         });
 
+        while (lock.get()) {
+            logger.info("waiting for ack from node {}", hostMessage.getSender());
+            ThreadUtil.sleep(500);
+        }
+
         // set routing table
         logger.info("HOST: Routing table setup");
 
@@ -206,5 +219,9 @@ public class NetworkService {
                 jobService.initiateJobForDimension(hostMessage.getStoppedJob());
             }
         });
+    }
+
+    public void ack() {
+        lock.set(false);
     }
 }

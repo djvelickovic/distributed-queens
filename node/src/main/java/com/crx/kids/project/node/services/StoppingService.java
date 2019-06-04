@@ -89,6 +89,9 @@ public class StoppingService {
                 ThreadUtil.sleep(500);
             }
 
+            PingMessage pingMessage = new PingMessage(Configuration.id, replacement);
+            routingService.dispatchMessage(pingMessage, Methods.HOST_ACK);
+
 //            logger.info("STOPPING: Sending alter routing table message to neighbours");
 //
 //            Network.neighbours.forEach((id, nodeInfo) -> { // nodeId / 2 + 1 will be notified that I m ghost!
