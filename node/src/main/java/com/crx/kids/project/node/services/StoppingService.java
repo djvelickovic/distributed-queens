@@ -113,7 +113,7 @@ public class StoppingService {
 
             executor.submit(() -> {
                 logger.info("STOPPING: Entering safe stopping sleep.");
-                ThreadUtil.sleep(5000);
+                ThreadUtil.sleep(2000);
                 SuzukiKasamiTokenMessage suzukiKasamiTokenMessage = new SuzukiKasamiTokenMessage(Configuration.id, Configuration.id, CriticalSection.token);
                 routingService.dispatchMessage(suzukiKasamiTokenMessage, Methods.CRITICAL_SECTION_TOKEN);
                 logger.info("STOPPING: Stopping service");
