@@ -6,6 +6,7 @@ public class Methods {
     // TestEndpoint
     public static final String STATUS = "test/status";
 
+
     public static String PING = "test/ping";
 
 
@@ -17,6 +18,7 @@ public class Methods {
     public static String BROADCAST_JOIN = "node/join-broadcast";
     public static String BROADCAST_LEAVE = "node/leave-broadcast";
     public static String HOST_REQUEST = "node/host-request";
+    public static final String MAX_LEAVE = "node/max-leave";
 
     // CriticalSectionEndpoint
     public static String BROADCAST_CRITICAL_SECTION = "critical-section/broadcast";

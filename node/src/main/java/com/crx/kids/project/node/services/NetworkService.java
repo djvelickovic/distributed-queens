@@ -157,13 +157,21 @@ public class NetworkService {
         }
 
         Network.neighbours.forEach( (receiver, nodeInfo) -> {
-            AlterRoutingTableMessage alterRoutingTableMessage = new AlterRoutingTableMessage(Configuration.id, receiver, Configuration.myself);
+            AlterRoutingTableMessage alterRoutingTableMessage = new AlterRoutingTableMessage(Configuration.id, receiver, false, Configuration.myself);
             nodeGateway.send(alterRoutingTableMessage, nodeInfo, Methods.ALTER_NEIGHBOURS);
         });
     }
 
 
     public static final AtomicBoolean lock = new AtomicBoolean(true);
+
+    public void maxLeave(int stoppedJob) {
+        criticalSectionService.submitProcedureForCriticalExecution(token -> {
+            if (stoppedJob != -1) {
+                jobService.initiateJobForDimension(stoppedJob);
+            }
+        });
+    }
 
     public void handleHostRequest(HostMessage hostMessage) {
 
@@ -205,12 +213,13 @@ public class NetworkService {
         Network.neighbours.clear();
         Network.neighbours.putAll(hostMessage.getRoutingTable());
         Configuration.id = hostMessage.getSender();
+        CriticalSection.suzukiKasamiCounter.set(hostMessage.getSuzukiKasamiCounter());
         logger.info("HOST: Routing table: {}", hostMessage.getRoutingTable());
         logger.info("HOST: NEW ID {}", Configuration.id);
 
         logger.info("HOST: Sending alter routing table.");
         Network.neighbours.forEach((id, nodeInfo) -> {
-            AlterRoutingTableMessage alterRoutingTableMessage = new AlterRoutingTableMessage(Configuration.id, id, Configuration.myself);
+            AlterRoutingTableMessage alterRoutingTableMessage = new AlterRoutingTableMessage(Configuration.id, id, false, Configuration.myself);
             nodeGateway.send(alterRoutingTableMessage, nodeInfo, Methods.ALTER_NEIGHBOURS);
         });
 

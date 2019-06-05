@@ -1,10 +1,8 @@
 package com.crx.kids.project.node.endpoints;
 
+import com.crx.kids.project.node.common.CriticalSection;
 import com.crx.kids.project.node.common.Network;
-import com.crx.kids.project.node.messages.AlterRoutingTableMessage;
-import com.crx.kids.project.node.messages.BroadcastMessage;
-import com.crx.kids.project.node.messages.HostMessage;
-import com.crx.kids.project.node.messages.PingMessage;
+import com.crx.kids.project.node.messages.*;
 import com.crx.kids.project.node.messages.newbie.NewbieAcceptedMessage;
 import com.crx.kids.project.node.messages.newbie.NewbieJoinMessage;
 import com.crx.kids.project.node.messages.response.CommonResponse;
@@ -43,7 +41,12 @@ public class NodeEndpoint {
 
         return ResponseEntity.ok(
                 routingService.handle(alterRoutingTableMessage, Methods.ALTER_NEIGHBOURS, routingService, () -> {
-                    Network.neighbours.put(alterRoutingTableMessage.getSender(), alterRoutingTableMessage.getNodeInfo());
+                    if (alterRoutingTableMessage.isDelete()) {
+                        Network.neighbours.remove(alterRoutingTableMessage.getSender());
+                    }
+                    else {
+                        Network.neighbours.put(alterRoutingTableMessage.getSender(), alterRoutingTableMessage.getNodeInfo());
+                    }
                     return new CommonResponse(CommonType.OK);
                 }));
     }
@@ -93,8 +96,11 @@ public class NodeEndpoint {
     public ResponseEntity<CommonResponse> leaveBroadcast(@RequestBody BroadcastMessage<String> discoveryBroadcastMessage) {
         if (routingService.broadcastMessage(discoveryBroadcastMessage, Methods.BROADCAST_LEAVE)) {
             logger.warn("NODE LEFT BROADCAST: {}", Network.maxNodeInSystem.get());
-            Network.maxNodeInSystem.decrementAndGet();
+            int node = Network.maxNodeInSystem.getAndDecrement();
 
+            CriticalSection.suzukiKasamiCounterByNodes.remove(node);
+
+            // alter table?!
 //
 //                if (discoveryBroadcastMessage.getSender() == Network.maxNodeInSystem) {
 //                    logger.info("Max node in system left.");
@@ -111,6 +117,16 @@ public class NodeEndpoint {
         return ResponseEntity.ok(
                 routingService.handle(hostMessage, Methods.HOST_REQUEST, routingService, () -> {
                     networkService.handleHostRequest(hostMessage);
+                    return new CommonResponse(CommonType.OK);
+                }));
+    }
+
+    @PostMapping(path = "max-leave", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    public ResponseEntity<CommonResponse> maxLeave(@RequestBody MaxLeaveMessage maxLeaveMessage) {
+
+        return ResponseEntity.ok(
+                routingService.handle(maxLeaveMessage, Methods.MAX_LEAVE, routingService, () -> {
+                    networkService.maxLeave(maxLeaveMessage.getActiveJob());
                     return new CommonResponse(CommonType.OK);
                 }));
     }

@@ -2,6 +2,7 @@ package com.crx.kids.project.node.endpoints;
 
 import com.crx.kids.project.node.common.Configuration;
 import com.crx.kids.project.node.messages.BroadcastMessage;
+import com.crx.kids.project.node.messages.SuzukiKasamiBroadcast;
 import com.crx.kids.project.node.messages.SuzukiKasamiTokenMessage;
 import com.crx.kids.project.node.messages.response.CommonResponse;
 import com.crx.kids.project.node.messages.response.CommonType;
@@ -30,7 +31,7 @@ public class CriticalSectionEndpoint {
     private CriticalSectionService criticalSectionService;
 
     @PostMapping(path = "broadcast", produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public ResponseEntity<CommonResponse> broadcast(@RequestBody BroadcastMessage<Integer> criticalSectionBroadcast) {
+    public ResponseEntity<CommonResponse> broadcast(@RequestBody SuzukiKasamiBroadcast criticalSectionBroadcast) {
 
         if (routingService.broadcastMessage(criticalSectionBroadcast, Methods.BROADCAST_CRITICAL_SECTION)) {
             criticalSectionService.handleSuzukiKasamiBroadcastMessage(criticalSectionBroadcast);

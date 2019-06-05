@@ -266,6 +266,8 @@ public class JobService {
                 .forEach(message -> routingService.dispatchMessage(message, Methods.QUEENS_STATUS));
 
 
+
+
         while (true) {
             if (jobsStatesByNodes.size() != sentToNodes - 1) { // -1 if filter is active!
                 logger.info("Waiting for status messages with request id {}. Received {}", statusRequestId, jobsStatesByNodes.size());
@@ -282,10 +284,9 @@ public class JobService {
 
 
         // TODO: combine messages
-
+        jobsStatesByNodes.put(Configuration.id, getJobsStates());
 
         Map<Integer, String> result = new HashMap<>();
-
 
         Map<Integer, List<JobState>> jobStatesByDimension = new HashMap<>();
 

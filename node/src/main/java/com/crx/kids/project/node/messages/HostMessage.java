@@ -11,16 +11,26 @@ public class HostMessage extends Message {
     private Map<Integer, Queue<QueensJob>> unfinishedJobsForDimension;
     private Integer stoppedJob;
     private NodeInfo myself;
+    private Integer suzukiKasamiCounter;
 
     public HostMessage() {
     }
 
-    public HostMessage(int sender, int receiver, Integer stoppedJob, Map<Integer, NodeInfo> routingTable, Map<Integer, Queue<QueensJob>> unfinishedJobsForDimension, NodeInfo myself) {
+    public HostMessage(int sender, int receiver, Integer stoppedJob, Map<Integer, NodeInfo> routingTable, Map<Integer, Queue<QueensJob>> unfinishedJobsForDimension, NodeInfo myself, Integer suzukiKasamiCounter) {
         super(sender, receiver);
         this.routingTable = routingTable;
         this.unfinishedJobsForDimension = unfinishedJobsForDimension;
         this.stoppedJob = stoppedJob;
         this.myself = myself;
+        this.suzukiKasamiCounter = suzukiKasamiCounter;
+    }
+
+    public Integer getSuzukiKasamiCounter() {
+        return suzukiKasamiCounter;
+    }
+
+    public void setSuzukiKasamiCounter(Integer suzukiKasamiCounter) {
+        this.suzukiKasamiCounter = suzukiKasamiCounter;
     }
 
     public NodeInfo getMyself() {

@@ -3,7 +3,7 @@ package com.crx.kids.project.node.messages;
 import java.util.Objects;
 
 public class BroadcastMessage<T> extends Message {
-    private T id;
+    protected T id;
 
     public BroadcastMessage() {
     }

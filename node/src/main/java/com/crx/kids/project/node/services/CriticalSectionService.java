@@ -6,6 +6,7 @@ import com.crx.kids.project.node.common.Network;
 import com.crx.kids.project.node.endpoints.Methods;
 import com.crx.kids.project.node.entities.CriticalSectionToken;
 import com.crx.kids.project.node.messages.BroadcastMessage;
+import com.crx.kids.project.node.messages.SuzukiKasamiBroadcast;
 import com.crx.kids.project.node.messages.SuzukiKasamiTokenMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,7 +43,7 @@ public class CriticalSectionService {
             CriticalSection.criticalSectionLock.writeLock().unlock();
         }
         logger.info("Creating and broadcasting Suzuki-Kasami {} message to neighbours. Counter: {}", path, suzukiKasamiId);
-        routingService.broadcastMessage(new BroadcastMessage<>(Configuration.id, suzukiKasamiId), path);
+        routingService.broadcastMessage(new SuzukiKasamiBroadcast(Configuration.id, suzukiKasamiId), path);
         return suzukiKasamiId;
     }
 
@@ -100,23 +101,23 @@ public class CriticalSectionService {
 
 
     @Async
-    public void handleSuzukiKasamiBroadcastMessage(BroadcastMessage<Integer> criticalSectionBroadcast) {
+    public void handleSuzukiKasamiBroadcastMessage(SuzukiKasamiBroadcast criticalSectionBroadcast) {
         try {
             CriticalSection.criticalSectionLock.writeLock().lock();
 
             CriticalSection.suzukiKasamiCounterByNodes.compute(criticalSectionBroadcast.getSender(), (sender, counter) -> {
                 if (counter == null) {
-                    logger.info("Setting first REQUEST message for Suzuki-Kasami and node {}. Current: {}, Received: {}", criticalSectionBroadcast.getSender(), counter, criticalSectionBroadcast.getId());
+                    logger.info("Setting first REQUEST message for Suzuki-Kasami and node {}. Current: {}, Received: {}", criticalSectionBroadcast.getSender(), counter, criticalSectionBroadcast.getCsId());
 
-                    return criticalSectionBroadcast.getId();
+                    return criticalSectionBroadcast.getCsId();
                 }
-                if (counter >= criticalSectionBroadcast.getId()) {
-                    logger.info("Received old REQUEST message for Suzuki-Kasami. Requesting node: {}, Current: {}, Received: {}", criticalSectionBroadcast.getSender(), counter, criticalSectionBroadcast.getId());
+                if (counter >= criticalSectionBroadcast.getCsId()) {
+                    logger.info("Received old REQUEST message for Suzuki-Kasami. Requesting node: {}, Current: {}, Received: {}", criticalSectionBroadcast.getSender(), counter, criticalSectionBroadcast.getCsId());
                     return counter;
                 }
                 else {
-                    logger.info("Received new REQUEST message for Suzuki-Kasami. Requesting node: {}, Current: {}, Received: {}", criticalSectionBroadcast.getSender(), counter, criticalSectionBroadcast.getId());
-                    return criticalSectionBroadcast.getId();
+                    logger.info("Received new REQUEST message for Suzuki-Kasami. Requesting node: {}, Current: {}, Received: {}", criticalSectionBroadcast.getSender(), counter, criticalSectionBroadcast.getCsId());
+                    return criticalSectionBroadcast.getCsId();
                 }
             });
 
