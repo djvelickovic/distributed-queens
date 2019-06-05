@@ -4,3 +4,9 @@
 
 fixing bugs.
 writing documentation.
+
+Nodes are stared with:
+
+replace bootstrap address with real one.
+
+-Dserver.address=0.0.0.0 -Dserver.port=11001 -Dbootstrap.addr=0.0.0.0 -Dbootstrap.port=10000
